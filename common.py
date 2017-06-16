@@ -98,8 +98,10 @@ def reform_data() :
         tbhdu.writeto(fname_dla)
 
         #Write QSO data
+        unihi=np.zeros_like(data_qso['UNIFORM']); unihi[:]=data_qso['UNIFORM']; unihi[data_qso['Z_PIPE']<2]=0
         tbhdu=pf.new_table([pf.Column(name='SDSS_NAME',format='18A',array=data_qso['SDSS_NAME']),
                             pf.Column(name='UNIFORM'  ,format='I',array=data_qso['UNIFORM']),
+                            pf.Column(name='UNIHI'  ,format='I',array=unihi),
                             pf.Column(name='RA'       ,format='D',array=data_qso['RA']),
                             pf.Column(name='DEC'      ,format='D',array=data_qso['DEC']),
                             pf.Column(name='Z_PIPE'   ,format='D',array=data_qso['Z_PIPE']),
@@ -107,12 +109,12 @@ def reform_data() :
                             pf.Column(name='L'        ,format='D',array=l_qso),
                             pf.Column(name='W'        ,format='D',array=w_qso)])
         tbhdu.writeto(fname_qso)
-        
+
         #Write QSO mask
         hp.write_map(fname_mask_qso,mask_qso)
 
 def compute_xcorr_c(fname_field,fname_mask,fname_catalog,thmax_deg,nbins,logbin=False,
-                    thmin_deg=0,fname_out='none') :
+                    thmin_deg=0,fname_out='none',weight_name='W',cut_name='NO_CUT') :
     """Computes 2PCF between a pixelized field and a set of points. Uses fast C implementation.
     fname_field : path to healpix map containing the field
     fname_mask : path to healpix map containing the field's mask
@@ -122,6 +124,8 @@ def compute_xcorr_c(fname_field,fname_mask,fname_catalog,thmax_deg,nbins,logbin=
     logbin : should I use logarithmic bins?
     thmin_deg : minimum angular separation in degrees
     fname_out : path to output filename
+    cut_name : column name corresponding to a cuts flag. Only objects with that flag!=0 will be used.
+    weight_name : column name corresponding to the weights.
     """
 
     if (fname_out!='none') and (os.path.isfile(fname_out)) :
@@ -133,9 +137,11 @@ def compute_xcorr_c(fname_field,fname_mask,fname_catalog,thmax_deg,nbins,logbin=
         command+=fname_field+" "
         command+=fname_mask+" "
         command+=fname_catalog+" "
-        command+=fname_out+" > "+fname_out+"_log"
-        command+=" %lf %d %d %lf"%(thmax_deg,nbins,do_log,thmin_deg)
-
+        command+=fname_out+" "
+        command+="%lf %d %d %lf "%(thmax_deg,nbins,do_log,thmin_deg)
+        command+=weight_name+" "
+        command+=cut_name+" "
+        command+=" > "+fname_out+"_log"
         os.system(command)
         th,wth,hf,hm=np.loadtxt(fname_out,unpack=True)
 

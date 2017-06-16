@@ -16,6 +16,8 @@ import scipy.stats as st
 n_dla=34050
 #Number of QSOs in the catalog
 n_qso=297301
+#Number of QSOs in the UNIFORM catalog
+n_qsu=107513
 #Maximum scale (deg) in the computation of the 2PCF
 thmax=1.
 #Number of bins in theta
@@ -51,15 +53,21 @@ th_qso,wth_qso,hf_qso,hm_qso=cmm.compute_xcorr_c(cmm.fname_cmbl,cmm.fname_mask_c
                                                  thmax,nth,fname_out=outdir+"corr_c_qso.txt")
 wth_dlao=wth_dla-wth_qso
 
+print "Computing the QSO-UNIFORM 2PCF"
+th_qsu,wth_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(cmm.fname_cmbl,cmm.fname_mask_cmbl,cmm.fname_qso,
+                                                 thmax,nth,fname_out=outdir+"corr_c_qsu.txt",cut_name='UNIHI')
+
 def get_random_corr(isim) :
     cleanup=False
     fname_dla=outdir+'corr_c_dla_random%d.txt'%isim
     fname_qso=outdir+'corr_c_qso_random%d.txt'%isim
-    if (not ((os.path.isfile(fname_dla)) and (os.path.isfile(fname_qso)))) :
+    fname_qsu=outdir+'corr_c_qsu_random%d.txt'%isim
+    if (not ((os.path.isfile(fname_dla)) and (os.path.isfile(fname_qso)) and (os.path.isfile(fname_qsu)))) :
         print isim
         cleanup=True
         cmm.random_points(mask_qso,n_dla,fname_out='data/dla_random_%d.fits'%isim,weights=np.ones(n_dla))
         cmm.random_points(mask_qso,n_qso,fname_out='data/qso_random_%d.fits'%isim,weights=np.ones(n_qso))
+        cmm.random_points(mask_qso,n_qsu,fname_out='data/qsu_random_%d.fits'%isim,weights=np.ones(n_qsu))
         cmm.random_map(mask,cmm.fname_kappa_cl,fname_out='data/map_random_%d.fits'%isim)
 
     th_dla,w_dla,hf_dla,hm_dla=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
@@ -68,20 +76,24 @@ def get_random_corr(isim) :
     th_qso,w_qso,hf_qso,hm_qso=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
                                                    'data/qso_random_%d.fits'%isim,thmax,nth,
                                                    fname_out=fname_qso)
+    th_qsu,w_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
+                                                   'data/qsu_random_%d.fits'%isim,thmax,nth,
+                                                   fname_out=fname_qsu)
 
     if cleanup :
-        os.system('rm data/dla_random_%d.fits data/qso_random_%d.fits data/map_random_%d.fits'%(isim,isim,isim))
+        os.system('rm data/dla_random_%d.fits data/qso_random_%d.fits data/qsu_random_%d.fits data/map_random_%d.fits'%(isim,isim,isim,isim))
     
-    return th_dla,w_dla,hf_dla,hm_dla,th_qso,w_qso,hf_qso,hm_qso
+    return th_dla,w_dla,hf_dla,hm_dla,th_qso,w_qso,hf_qso,hm_qso,th_qsu,w_qsu,hf_qsu,hm_qsu
 
 nsims=1000
 print "Generating %d random measurements"%nsims
-data_randoms=np.zeros([nsims,3,4,nth])
+data_randoms=np.zeros([nsims,4,4,nth])
 for i in np.arange(nsims) :
-    td,wd,fd,md,tq,wq,fq,mq=get_random_corr(i)
+    td,wd,fd,md,tq,wq,fq,mq,tu,wu,fu,mu=get_random_corr(i)
     data_randoms[i,0,:,:]=np.array([td,wd,fd,md])
     data_randoms[i,1,:,:]=np.array([tq,wq,fq,mq])
-    data_randoms[i,2,:,:]=data_randoms[i,0,:,:]-data_randoms[i,1,:,:]
+    data_randoms[i,2,:,:]=np.array([tu,wu,fu,mu])
+    data_randoms[i,3,:,:]=data_randoms[i,0,:,:]-data_randoms[i,1,:,:]
 tharr=np.mean(data_randoms[:,0,0,:],axis=0)
 
 print  "Computing covariance matrices"
@@ -93,8 +105,12 @@ mean_qso=np.mean(data_randoms[:,1,1,:],axis=0)
 covar_qso=np.mean(data_randoms[:,1,1,:,None]*data_randoms[:,1,1,None,:],axis=0)-mean_qso[:,None]*mean_qso[None,:]
 corr_qso=covar_qso/np.sqrt(np.diag(covar_qso)[None,:]*np.diag(covar_qso)[:,None])
 
-mean_dlao=np.mean(data_randoms[:,2,1,:],axis=0)
-covar_dlao=np.mean(data_randoms[:,2,1,:,None]*data_randoms[:,2,1,None,:],axis=0)-mean_dlao[:,None]*mean_dlao[None,:]
+mean_qsu=np.mean(data_randoms[:,1,1,:],axis=0)
+covar_qsu=np.mean(data_randoms[:,1,1,:,None]*data_randoms[:,1,1,None,:],axis=0)-mean_qsu[:,None]*mean_qsu[None,:]
+corr_qsu=covar_qsu/np.sqrt(np.diag(covar_qsu)[None,:]*np.diag(covar_qsu)[:,None])
+
+mean_dlao=np.mean(data_randoms[:,3,1,:],axis=0)
+covar_dlao=np.mean(data_randoms[:,3,1,:,None]*data_randoms[:,3,1,None,:],axis=0)-mean_dlao[:,None]*mean_dlao[None,:]
 corr_dlao=covar_dlao/np.sqrt(np.diag(covar_dlao)[None,:]*np.diag(covar_dlao)[:,None])
 
 plt.figure()
@@ -102,6 +118,9 @@ plt.imshow(corr_dla,origin='lower',interpolation='nearest')
 
 plt.figure()
 plt.imshow(corr_qso,origin='lower',interpolation='nearest')
+
+plt.figure()
+plt.imshow(corr_qsu,origin='lower',interpolation='nearest')
 
 plt.figure()
 plt.imshow(corr_dlao,origin='lower',interpolation='nearest')
@@ -119,12 +138,11 @@ zarr_dlao,nzarr_dlao=get_nz_oversample(bn,nz,256)
 bzarr_dlao=cmm.bias_dla(zarr_dlao)
 nz,bins=np.histogram(data_dla['zqso'],range=[0,7],bins=50)
 zarr_qso,nzarr_qso=get_nz_oversample(bn,nz,256)
-bzarr_qso=1.4*cmm.bias_qso(2.2)*np.ones(256)#cmm.bias_qso(zarr_qso)
+bzarr_qso=0.7*cmm.bias_qso(2.2)*np.ones(256)#cmm.bias_qso(zarr_qso)
 
 print "  Cls"
 if not os.path.isfile(outdir+"cls_th.txt") :
     cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
-#                        ,transfer_function='eisenstein_hu')
     clt_dlao=ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlao,nzarr_dlao),(zarr_dlao,bzarr_dlao))
     clt_qso =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso,nzarr_qso),(zarr_qso,bzarr_qso))
     clt_cmbl=ccl.ClTracerCMBLensing(cosmo)

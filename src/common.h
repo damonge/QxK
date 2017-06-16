@@ -36,7 +36,7 @@ void report_error(int level,char *fmt,...);
 void *my_malloc(size_t size);
 void *my_calloc(size_t nmemb,size_t size);
 FILE *my_fopen(const char *path,const char *mode);
-double *read_catalog(char *fname_cat,char *weight_name,long *ngal);
+double *read_catalog(char *fname_cat,char *weight_name,char *cut_name,long *ngal);
 void compute_correlation(long ngal,double *pos,long nside,double *fld,double *msk,
 			 double thmin,double thmax,int nth,int do_log,double *hf_th,double *hm_th);
 void write_correlation(char *fname_out,double *hf_th,double *hm_th,

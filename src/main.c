@@ -6,10 +6,13 @@ int main(int argc,char **argv)
   char fname_mask[256];
   char fname_catalog[256];
   char fname_out[256];
+  char field_weight[256];
+  char field_cut[256];
   double thmax,thmin=0;
   int nth,do_logbin=0;
-  if(argc<7) {
-    fprintf(stderr,"Usage: ./FieldXCorr fname_field fname_mask fname_catalog fname_out thmax nth [logbin thmin]\n");
+  if(argc!=11) {
+    fprintf(stderr,"Usage: ./FieldXCorr fname_field fname_mask fname_catalog fname_out thmax nth"
+	    " logbin thmin field_weight field_cut\n");
     exit(0);
   }
 
@@ -21,10 +24,10 @@ int main(int argc,char **argv)
   sprintf(fname_out    ,"%s",argv[4]);
   thmax=atof(argv[5]);
   nth=atoi(argv[6]);
-  if(argc>7) {
-    do_logbin=atoi(argv[7]);
-    thmin=atof(argv[8]);
-  }
+  do_logbin=atoi(argv[7]);
+  thmin=atof(argv[8]);
+  sprintf(field_weight,"%s",argv[9]);
+  sprintf(field_cut   ,"%s",argv[10]);
 
   printf("Reading field :\n");
   timer(0);
@@ -57,7 +60,7 @@ int main(int argc,char **argv)
 
   printf("Reading catalog :\n");
   long npart;
-  double *pos=read_catalog(fname_catalog,"W",&npart);
+  double *pos=read_catalog(fname_catalog,field_weight,field_cut,&npart);
   printf(" read positions for %ld objects\n",npart);
   timer(2);
   printf("\n");

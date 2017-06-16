@@ -87,7 +87,7 @@ FILE *my_fopen(const char *path,const char *mode)
   return fout;
 }
 
-double *read_catalog(char *fname_cat,char *weight_name,long *ngal)
+double *read_catalog(char *fname_cat,char *weight_name,char *cut_name,long *ngal)
 {
   int status=0;
   long ip,np;
@@ -96,10 +96,8 @@ double *read_catalog(char *fname_cat,char *weight_name,long *ngal)
   fits_open_table(&fptr,fname_cat,0,&status);
   fits_get_num_rows(fptr,&np,&status);
 
-  *ngal=np;
-
   int found=0;
-  int i_b,i_l,i_w=-1;
+  int i_b,i_l,i_w=-1,i_c=-1;
   found=fits_get_colnum(fptr,CASEINSEN,"B",&i_b,&status);
   if(found==COL_NOT_FOUND)
     report_error(1,"No column found for galactic latitude\n");
@@ -111,10 +109,16 @@ double *read_catalog(char *fname_cat,char *weight_name,long *ngal)
     if(found==COL_NOT_FOUND)
       report_error(1,"No column found for weights\n");
   }
+  if(strcmp(cut_name,"NO_CUT")) {
+    found=fits_get_colnum(fptr,CASEINSEN,cut_name,&i_c,&status);
+    if(found==COL_NOT_FOUND)
+      report_error(1,"No column found for cuts\n");
+  }
 
   double *b_arr=my_malloc(np*sizeof(double));
   double *l_arr=my_malloc(np*sizeof(double));
   double *w_arr=my_malloc(np*sizeof(double));
+  int *c_arr=my_malloc(np*sizeof(int));
 
   fits_read_col(fptr,TDOUBLE,i_b,1,1,np,NULL,b_arr,NULL,&status);
   fits_read_col(fptr,TDOUBLE,i_l,1,1,np,NULL,l_arr,NULL,&status);
@@ -124,20 +128,38 @@ double *read_catalog(char *fname_cat,char *weight_name,long *ngal)
     for(ip=0;ip<np;ip++)
       w_arr[ip]=1;
   }
+  if(i_c!=-1)
+    fits_read_col(fptr,TINT,i_c,1,1,np,NULL,c_arr,NULL,&status);
+  else {
+    for(ip=0;ip<np;ip++)
+      c_arr[ip]=-1;
+  }
   fits_close_file(fptr,&status);
 
-  double *pos=my_malloc(3*np*sizeof(double));
+  int n_cut=0;
   for(ip=0;ip<np;ip++) {
-    double cth=cos(DTOR*(90-b_arr[ip]));
-    double phi=DTOR*l_arr[ip];
-    pos[3*ip+0]=cth;
-    pos[3*ip+1]=phi;
-    pos[3*ip+2]=w_arr[ip];
+    if(c_arr[ip]!=0)
+      n_cut++;
+  }
+
+  *ngal=n_cut;
+  double *pos=my_malloc(3*n_cut*sizeof(double));
+  n_cut=0;
+  for(ip=0;ip<np;ip++) {
+    if(c_arr[ip]!=0) {
+      double cth=cos(DTOR*(90-b_arr[ip]));
+      double phi=DTOR*l_arr[ip];
+      pos[3*n_cut+0]=cth;
+      pos[3*n_cut+1]=phi;
+      pos[3*n_cut+2]=w_arr[ip];
+      n_cut++;
+    }
   }
 
   free(b_arr);
   free(l_arr);
   free(w_arr);
+  free(c_arr);
 
   return pos;
 }
