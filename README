@@ -11,5 +11,5 @@
 3. Compile the code that computes the 2PCF in the data.
    Typing 'make' should do the trick. The code requires cfitsio and HEALPix.
 
-4. Running analysis.py will go through all the steps in the pipeline.
+4. Running analysis_wth.py will go through all the steps in the pipeline.
    common.py contains a bunch of routines and variable definitions.

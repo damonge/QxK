@@ -21,7 +21,7 @@ thmax=1.
 #Number of bins in theta
 nth=16
 #Maximum angle to use in the fit
-th_thr=0.7
+th_thr=1.0
 #Do we compute the 2PCF using the slow python implementation?
 compute_with_python=False
 
@@ -38,6 +38,8 @@ field=hp.read_map(cmm.fname_cmbl,verbose=False)
 
 print "Reading QSO mask"
 mask_qso=hp.read_map(cmm.fname_mask_qso,verbose=False)
+ndens_qso=n_qso/(4*np.pi*np.mean(mask_qso))
+ndens_dla=n_dla/(4*np.pi*np.mean(mask_qso))
 
 print "Computing the DLA 2PCF"
 data_dla=(fits.open(cmm.fname_dla))[1].data
@@ -56,8 +58,8 @@ def get_random_corr(isim) :
     if (not ((os.path.isfile(fname_dla)) and (os.path.isfile(fname_qso)))) :
         print isim
         cleanup=True
-        cmm.random_points(mask_qso,34050,fname_out='data/dla_random_%d.fits'%isim,weights=np.ones(n_dla))
-        cmm.random_points(mask_qso,297301,fname_out='data/qso_random_%d.fits'%isim,weights=np.ones(n_qso))
+        cmm.random_points(mask_qso,n_dla,fname_out='data/dla_random_%d.fits'%isim,weights=np.ones(n_dla))
+        cmm.random_points(mask_qso,n_qso,fname_out='data/qso_random_%d.fits'%isim,weights=np.ones(n_qso))
         cmm.random_map(mask,cmm.fname_kappa_cl,fname_out='data/map_random_%d.fits'%isim)
 
     th_dla,w_dla,hf_dla,hm_dla=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
@@ -117,26 +119,44 @@ zarr_dlao,nzarr_dlao=get_nz_oversample(bn,nz,256)
 bzarr_dlao=cmm.bias_dla(zarr_dlao)
 nz,bins=np.histogram(data_dla['zqso'],range=[0,7],bins=50)
 zarr_qso,nzarr_qso=get_nz_oversample(bn,nz,256)
-bzarr_qso=cmm.bias_qso(zarr_qso)
+bzarr_qso=1.4*cmm.bias_qso(2.2)*np.ones(256)#cmm.bias_qso(zarr_qso)
 
 print "  Cls"
 if not os.path.isfile(outdir+"cls_th.txt") :
-    cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)#,transfer_function='eisenstein_hu')
+    cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
+#                        ,transfer_function='eisenstein_hu')
     clt_dlao=ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlao,nzarr_dlao),(zarr_dlao,bzarr_dlao))
     clt_qso =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso,nzarr_qso),(zarr_qso,bzarr_qso))
-    clt_cl  =ccl.ClTracerCMBLensing(cosmo)
-    larr    =np.concatenate((1.*np.arange(500),500+10.*np.arange(950)))
-    cl_dlao =ccl.angular_cl(cosmo,clt_dlao,clt_cl,larr,l_limber=-1)
-    cl_qso  =ccl.angular_cl(cosmo,clt_qso ,clt_cl,larr,l_limber=-1)
-    np.savetxt(outdir+"cls_th.txt",np.transpose([larr,cl_dlao,cl_qso]))
-larr,cl_dlao,cl_qso=np.loadtxt(outdir+"cls_th.txt",unpack=True)
-cl_dla=cl_dlao+cl_qso
+    clt_cmbl=ccl.ClTracerCMBLensing(cosmo)
+    larr     =np.concatenate((1.*np.arange(500),500+10.*np.arange(950)))
+    cl_dd=ccl.angular_cl(cosmo,clt_dlao,clt_dlao,larr,l_limber=-1)
+    cl_dc=ccl.angular_cl(cosmo,clt_dlao,clt_cmbl,larr,l_limber=-1)
+    cl_qq=ccl.angular_cl(cosmo,clt_qso ,clt_qso ,larr,l_limber=-1)
+    cl_qc=ccl.angular_cl(cosmo,clt_qso ,clt_cmbl,larr,l_limber=-1)
+    cl_cc=ccl.angular_cl(cosmo,clt_cmbl,clt_cmbl,larr,l_limber=-1)
+    np.savetxt(outdir+"cls_th.txt",np.transpose([larr,cl_dc,cl_qc,cl_dd,cl_qq,cl_cc]))
+larr,cl_dc,cl_qc,cl_dd,cl_qq,cl_cc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
+nl_qq=np.ones_like(cl_qq)/ndens_qso
+nl_dd=np.ones_like(cl_dd)/ndens_dla
+plt.figure()
+plt.plot(larr,cl_dd,'m-')
+plt.plot(larr,nl_dd,'m--')
+plt.plot(larr,cl_qq,'c-')
+plt.plot(larr,nl_qq,'c--')
+plt.plot(larr,cl_qq+nl_qq,'c-.')
+plt.plot(larr,cl_cc,'y-')
+plt.plot(larr,cl_dc,'b-')
+plt.plot(larr,cl_qc,'g-')
+plt.plot(larr,cl_qc+cl_dc,'r-')
+plt.loglog()
+plt.show(); exit(1)
+cl_dla=cl_dc+cl_qc
 
 print "  w(theta)"
 if not os.path.isfile(outdir+"wth_th.txt") :
     tharr_th=2.*np.arange(256)/255.
-    wth_th_dlao=c2w.compute_wth(larr,cl_dlao,tharr_th)
-    wth_th_qso =c2w.compute_wth(larr,cl_qso ,tharr_th)
+    wth_th_dlao=c2w.compute_wth(larr,cl_dc,tharr_th)
+    wth_th_qso =c2w.compute_wth(larr,cl_qc ,tharr_th)
     np.savetxt(outdir+"wth_th.txt",np.transpose([tharr_th,wth_th_dlao,wth_th_qso]))
 tharr_th,wth_th_dlao,wth_th_qso=np.loadtxt(outdir+"wth_th.txt",unpack=True)
 wth_th_dla=wth_th_dlao+wth_th_qso
@@ -144,11 +164,6 @@ wth_th_dla=wth_th_dlao+wth_th_qso
 plt.figure()
 plt.plot(zarr_dlao,nzarr_dlao)
 plt.plot(zarr_qso,nzarr_qso)
-
-plt.figure()
-plt.plot(larr,cl_dla ,'r-')
-plt.plot(larr,cl_dlao,'b-')
-plt.plot(larr,cl_qso ,'g-')
 
 plt.figure()
 plt.plot(tharr_th,wth_th_dla ,'r-',lw=2)
@@ -169,8 +184,17 @@ dth=tharr[1]-tharr[0]
 wth_f_dlao=interp1d(tharr_th,tharr_th*wth_th_dlao,bounds_error=False,fill_value=0)
 wth_pr_dlao=np.array([quad(wth_f_dlao,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
 
-#Data vectors and covariances
+wth_f_qso=interp1d(tharr_th,tharr_th*wth_th_qso,bounds_error=False,fill_value=0)
+wth_pr_qso=np.array([quad(wth_f_qso,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
+
+wth_f_dla=interp1d(tharr_th,tharr_th*wth_th_dla,bounds_error=False,fill_value=0)
+wth_pr_dla=np.array([quad(wth_f_dla,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
+
 i_good=np.where(tharr<th_thr)[0]; ndof=len(i_good)
+
+
+#Fitting the 2PCF difference
+#Data vectors and covariances
 dv=wth_dlao[i_good]; tv=wth_pr_dlao[i_good]; cv=(covar_dlao[i_good,:])[:,i_good]; icv=np.linalg.inv(cv)
 #chi^2
 chi2_null=np.dot(dv,np.dot(icv,dv))
@@ -181,14 +205,55 @@ b_bf=np.dot(tv,np.dot(icv,dv))/np.dot(tv,np.dot(icv,tv))
 print chi2_null/ndof,chi2_pred/ndof,chi2_null-chi2_pred
 print 1-st.chi2.cdf(chi2_null,ndof),1-st.chi2.cdf(chi2_pred,ndof)
 print "b_DLA = %.3lf +- %.3lf"%(2*b_bf,2*sigma_b)
-
 plt.figure()
 plt.plot(tharr_th,b_bf*wth_th_dlao,'b-',lw=2,label='Best fit')
-plt.errorbar(tharr[i_good],wth_dlao[i_good],yerr=np.sqrt(np.diag(covar_dlao)[i_good]),fmt='bo',label='Data')
+plt.errorbar(tharr[i_good],dv,yerr=np.sqrt(np.diag(covar_dlao)[i_good]),fmt='bo',label='Data')
 plt.xlim([0,th_thr])
 plt.ylim([-0.005,0.025])
 plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
 plt.ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle$',fontsize=18)
 plt.legend(loc='upper right',frameon=False,fontsize=16)
+
+#Fitting both 2PCFs with b_DLA and b_QSO
+dv=np.concatenate((wth_dla[i_good],wth_qso[i_good]));
+tv1=np.concatenate((wth_pr_dlao[i_good],np.zeros(ndof)));
+tv2=np.concatenate((wth_pr_qso[i_good],wth_pr_qso[i_good]))
+tv=np.array([tv1,tv2])
+cv=np.zeros([2*ndof,2*ndof])
+cv[:ndof,:ndof]=(covar_dla[i_good,:])[:,i_good];
+cv[ndof:,ndof:]=(covar_qso[i_good,:])[:,i_good];
+icv=np.linalg.inv(cv)
+
+cov_b=np.linalg.inv(np.dot(tv,np.dot(icv,np.transpose(tv))))
+b_bf=np.dot(cov_b,np.dot(tv,np.dot(icv,np.transpose(dv))))
+
+print 2*b_bf,2*np.sqrt(np.diag(cov_b))
+print cov_b/np.sqrt(np.diag(cov_b)[None,:]*np.diag(cov_b)[:,None])
+pv=np.dot(b_bf,tv);
+chi2=np.dot((dv-pv),np.dot(icv,(dv-pv)));
+pte=1-st.chi2.cdf(chi2,2*ndof-2)
+print chi2,2*ndof-2,pte
+plt.show(); exit(1)
+
+plt.figure()
+plt.plot(tharr,wth_pr_dla,'r-')
+plt.plot(tharr,wth_pr_qso,'g-')
+plt.plot(tharr,wth_pr_dlao,'b-')
+plt.plot(tharr,wth_dla,'r--')
+plt.plot(tharr,wth_qso,'g--')
+plt.plot(tharr,wth_dlao,'b--')
+plt.ylim([-0.005,0.025])
+plt.show();
+exit(1)
+#chi^2
+chi2_null=np.dot(dv,np.dot(icv,dv))
+chi2_pred=np.dot(dv-tv,np.dot(icv,dv-tv))
+#Analytic Best-fit and errors
+sigma_b=1./np.sqrt(np.dot(tv,np.dot(icv,tv)))
+b_bf=np.dot(tv,np.dot(icv,dv))/np.dot(tv,np.dot(icv,tv))
+print chi2_null/ndof,chi2_pred/ndof,chi2_null-chi2_pred
+print 1-st.chi2.cdf(chi2_null,ndof),1-st.chi2.cdf(chi2_pred,ndof)
+print "b_DLA = %.3lf +- %.3lf"%(2*b_bf,2*sigma_b)
+
 
 plt.show()
