@@ -226,8 +226,8 @@ def random_map(mask,fname_cl,fname_out='none') :
 
     nside=hp.npix2nside(len(mask))
     ll,cll,nll=np.loadtxt(fname_cl,unpack=True)
-    cl=np.zeros(ll[-1]+1)
-    cl[ll[0]:]=cll
+    cl=np.zeros(int(ll[-1]+1))
+    cl[int(ll[0]):]=cll
     mp=hp.synfast(cl,nside,lmax=2048,new=True,verbose=False)
     mp*=mask
 

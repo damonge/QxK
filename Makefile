@@ -1,15 +1,15 @@
 ########## User-definable stuff ##########
 #
 ###Compiler and compilation options
-COMP_CC = gcc
+COMP_CC = icc
 OPTIONS = -Wall -O3 -std=gnu99
 #
 ###Path to libraries and headers
 ###If two or more of the dependencies reside in the same paths, only
 ###one instance is necessary.
 #cfitsio
-FITS_INC = -I/home/damonge/include
-FITS_LIB = -L/home/damonge/lib
+FITS_INC = -I/users/damonge/include
+FITS_LIB = -L/users/damonge/lib
 #healpix
 HPIX_INC =
 HPIX_LIB =
@@ -18,7 +18,7 @@ HPIX_LIB =
 
 DEFINEFLAGS += -DHAVE_INLINE -DGSL_RANGE_CHECK_OFF 
 
-OPTIONS += -fopenmp
+OPTIONS += -openmp
 DEFINEFLAGS += -D_HAVE_OMP
 
 OPTIONS += $(DEFINEFLAGS)

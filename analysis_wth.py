@@ -12,6 +12,11 @@ import cl2wth as c2w
 from scipy.integrate import quad
 import scipy.stats as st
 
+if len(sys.argv)!=2 :
+    print "Usage : analysis_wth.py nbins"
+    exit(1)
+
+plot_stuff=False
 #Number of DLAs in the catalog
 n_dla=34050
 #Number of QSOs in the catalog
@@ -21,7 +26,7 @@ n_qsu=107513
 #Maximum scale (deg) in the computation of the 2PCF
 thmax=1.
 #Number of bins in theta
-nth=16
+nth=int(sys.argv[1])
 #Maximum angle to use in the fit
 th_thr=1.0
 #Do we compute the 2PCF using the slow python implementation?
@@ -45,6 +50,8 @@ ndens_dla=n_dla/(4*np.pi*np.mean(mask_qso))
 
 print "Computing the DLA 2PCF"
 data_dla=(fits.open(cmm.fname_dla))[1].data
+data_qso=(fits.open(cmm.fname_qso))[1].data
+data_dla=(fits.open(cmm.fname_dla))[1].data
 th_dla,wth_dla,hf_dla,hm_dla=cmm.compute_xcorr_c(cmm.fname_cmbl,cmm.fname_mask_cmbl,cmm.fname_dla,
                                                  thmax,nth,fname_out=outdir+"corr_c_dla.txt")
 
@@ -55,7 +62,8 @@ wth_dlao=wth_dla-wth_qso
 
 print "Computing the QSO-UNIFORM 2PCF"
 th_qsu,wth_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(cmm.fname_cmbl,cmm.fname_mask_cmbl,cmm.fname_qso,
-                                                 thmax,nth,fname_out=outdir+"corr_c_qsu.txt",cut_name='UNIHI')
+                                                 thmax,nth,fname_out=outdir+"corr_c_qsu.txt",
+                                                 cut_name='UNIHI',weight_name='NO_WEIGHT')
 
 def get_random_corr(isim) :
     cleanup=False
@@ -65,9 +73,9 @@ def get_random_corr(isim) :
     if (not ((os.path.isfile(fname_dla)) and (os.path.isfile(fname_qso)) and (os.path.isfile(fname_qsu)))) :
         print isim
         cleanup=True
-        cmm.random_points(mask_qso,n_dla,fname_out='data/dla_random_%d.fits'%isim,weights=np.ones(n_dla))
-        cmm.random_points(mask_qso,n_qso,fname_out='data/qso_random_%d.fits'%isim,weights=np.ones(n_qso))
-        cmm.random_points(mask_qso,n_qsu,fname_out='data/qsu_random_%d.fits'%isim,weights=np.ones(n_qsu))
+        cmm.random_points(mask_qso,n_dla,fname_out='data/dla_random_%d.fits'%isim,weights=data_dla['W'])
+        cmm.random_points(mask_qso,n_qso,fname_out='data/qso_random_%d.fits'%isim,weights=data_qso['W'])
+        cmm.random_points(mask_qso,n_qsu,fname_out='data/qsu_random_%d.fits'%isim,weights=None)
         cmm.random_map(mask,cmm.fname_kappa_cl,fname_out='data/map_random_%d.fits'%isim)
 
     th_dla,w_dla,hf_dla,hm_dla=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
@@ -78,11 +86,11 @@ def get_random_corr(isim) :
                                                    fname_out=fname_qso)
     th_qsu,w_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
                                                    'data/qsu_random_%d.fits'%isim,thmax,nth,
-                                                   fname_out=fname_qsu)
+                                                   weight_name='NO_WEIGHT',fname_out=fname_qsu)
 
     if cleanup :
         os.system('rm data/dla_random_%d.fits data/qso_random_%d.fits data/qsu_random_%d.fits data/map_random_%d.fits'%(isim,isim,isim,isim))
-    
+
     return th_dla,w_dla,hf_dla,hm_dla,th_qso,w_qso,hf_qso,hm_qso,th_qsu,w_qsu,hf_qsu,hm_qsu
 
 nsims=1000
@@ -113,17 +121,18 @@ mean_dlao=np.mean(data_randoms[:,3,1,:],axis=0)
 covar_dlao=np.mean(data_randoms[:,3,1,:,None]*data_randoms[:,3,1,None,:],axis=0)-mean_dlao[:,None]*mean_dlao[None,:]
 corr_dlao=covar_dlao/np.sqrt(np.diag(covar_dlao)[None,:]*np.diag(covar_dlao)[:,None])
 
-plt.figure()
-plt.imshow(corr_dla,origin='lower',interpolation='nearest')
-
-plt.figure()
-plt.imshow(corr_qso,origin='lower',interpolation='nearest')
-
-plt.figure()
-plt.imshow(corr_qsu,origin='lower',interpolation='nearest')
-
-plt.figure()
-plt.imshow(corr_dlao,origin='lower',interpolation='nearest')
+if plot_stuff :
+    plt.figure()
+    plt.imshow(corr_dla,origin='lower',interpolation='nearest')
+    
+    plt.figure()
+    plt.imshow(corr_qso,origin='lower',interpolation='nearest')
+    
+    plt.figure()
+    plt.imshow(corr_qsu,origin='lower',interpolation='nearest')
+    
+    plt.figure()
+    plt.imshow(corr_dlao,origin='lower',interpolation='nearest')
 
 print "Computing theory prediction"
 def get_nz_oversample(bins,nzar,nbins) :
@@ -156,18 +165,19 @@ if not os.path.isfile(outdir+"cls_th.txt") :
 larr,cl_dc,cl_qc,cl_dd,cl_qq,cl_cc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
 nl_qq=np.ones_like(cl_qq)/ndens_qso
 nl_dd=np.ones_like(cl_dd)/ndens_dla
-plt.figure()
-plt.plot(larr,cl_dd,'m-')
-plt.plot(larr,nl_dd,'m--')
-plt.plot(larr,cl_qq,'c-')
-plt.plot(larr,nl_qq,'c--')
-plt.plot(larr,cl_qq+nl_qq,'c-.')
-plt.plot(larr,cl_cc,'y-')
-plt.plot(larr,cl_dc,'b-')
-plt.plot(larr,cl_qc,'g-')
-plt.plot(larr,cl_qc+cl_dc,'r-')
-plt.loglog()
-plt.show(); exit(1)
+if plot_stuff :
+    plt.figure()
+    plt.plot(larr,cl_dd,'m-')
+    plt.plot(larr,nl_dd,'m--')
+    plt.plot(larr,cl_qq,'c-')
+    plt.plot(larr,nl_qq,'c--')
+    plt.plot(larr,cl_qq+nl_qq,'c-.')
+    plt.plot(larr,cl_cc,'y-')
+    plt.plot(larr,cl_dc,'b-')
+    plt.plot(larr,cl_qc,'g-')
+    plt.plot(larr,cl_qc+cl_dc,'r-')
+    plt.loglog()
+    plt.show();
 cl_dla=cl_dc+cl_qc
 
 print "  w(theta)"
@@ -179,24 +189,25 @@ if not os.path.isfile(outdir+"wth_th.txt") :
 tharr_th,wth_th_dlao,wth_th_qso=np.loadtxt(outdir+"wth_th.txt",unpack=True)
 wth_th_dla=wth_th_dlao+wth_th_qso
 
-plt.figure()
-plt.plot(zarr_dlao,nzarr_dlao)
-plt.plot(zarr_qso,nzarr_qso)
-
-plt.figure()
-plt.plot(tharr_th,wth_th_dla ,'r-',lw=2)
-plt.plot(tharr_th,wth_th_qso ,'g-',lw=2)
-plt.plot(tharr_th,wth_th_dlao,'b-',lw=2)
-plt.errorbar(tharr,wth_dla ,yerr=np.sqrt(np.diag(covar_dla)) ,fmt='ro',label='DLA+QSO')
-plt.errorbar(tharr,wth_qso ,yerr=np.sqrt(np.diag(covar_qso)) ,fmt='go',label='QSO')
-plt.errorbar(tharr,wth_dlao,yerr=np.sqrt(np.diag(covar_dlao)),fmt='bo',label='DLA')
-plt.plot([-1,-1],[-1,-1],'k-',lw=2,label='Theory, $b_{\\rm DLA}=2$')
-plt.xlim([0,1])
-plt.ylim([-0.005,0.025])
-plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
-plt.ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle$',fontsize=18)
-plt.legend(loc='upper right',frameon=False,fontsize=16)
-
+if plot_stuff :
+    plt.figure()
+    plt.plot(zarr_dlao,nzarr_dlao)
+    plt.plot(zarr_qso,nzarr_qso)
+    
+    plt.figure()
+    plt.plot(tharr_th,wth_th_dla ,'r-',lw=2)
+    plt.plot(tharr_th,wth_th_qso ,'g-',lw=2)
+    plt.plot(tharr_th,wth_th_dlao,'b-',lw=2)
+    plt.errorbar(tharr,wth_dla ,yerr=np.sqrt(np.diag(covar_dla)) ,fmt='ro',label='DLA+QSO')
+    plt.errorbar(tharr,wth_qso ,yerr=np.sqrt(np.diag(covar_qso)) ,fmt='go',label='QSO')
+    plt.errorbar(tharr,wth_dlao,yerr=np.sqrt(np.diag(covar_dlao)),fmt='bo',label='DLA')
+    plt.plot([-1,-1],[-1,-1],'k-',lw=2,label='Theory, $b_{\\rm DLA}=2$')
+    plt.xlim([0,1])
+    plt.ylim([-0.005,0.025])
+    plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
+    plt.ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle$',fontsize=18)
+    plt.legend(loc='upper right',frameon=False,fontsize=16)
+    
 #Binning theory
 dth=tharr[1]-tharr[0]
 wth_f_dlao=interp1d(tharr_th,tharr_th*wth_th_dlao,bounds_error=False,fill_value=0)
@@ -223,14 +234,15 @@ b_bf=np.dot(tv,np.dot(icv,dv))/np.dot(tv,np.dot(icv,tv))
 print chi2_null/ndof,chi2_pred/ndof,chi2_null-chi2_pred
 print 1-st.chi2.cdf(chi2_null,ndof),1-st.chi2.cdf(chi2_pred,ndof)
 print "b_DLA = %.3lf +- %.3lf"%(2*b_bf,2*sigma_b)
-plt.figure()
-plt.plot(tharr_th,b_bf*wth_th_dlao,'b-',lw=2,label='Best fit')
-plt.errorbar(tharr[i_good],dv,yerr=np.sqrt(np.diag(covar_dlao)[i_good]),fmt='bo',label='Data')
-plt.xlim([0,th_thr])
-plt.ylim([-0.005,0.025])
-plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
-plt.ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle$',fontsize=18)
-plt.legend(loc='upper right',frameon=False,fontsize=16)
+if plot_stuff :
+    plt.figure()
+    plt.plot(tharr_th,b_bf*wth_th_dlao,'b-',lw=2,label='Best fit')
+    plt.errorbar(tharr[i_good],dv,yerr=np.sqrt(np.diag(covar_dlao)[i_good]),fmt='bo',label='Data')
+    plt.xlim([0,th_thr])
+    plt.ylim([-0.005,0.025])
+    plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
+    plt.ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle$',fontsize=18)
+    plt.legend(loc='upper right',frameon=False,fontsize=16)
 
 #Fitting both 2PCFs with b_DLA and b_QSO
 dv=np.concatenate((wth_dla[i_good],wth_qso[i_good]));
@@ -251,27 +263,6 @@ pv=np.dot(b_bf,tv);
 chi2=np.dot((dv-pv),np.dot(icv,(dv-pv)));
 pte=1-st.chi2.cdf(chi2,2*ndof-2)
 print chi2,2*ndof-2,pte
-plt.show(); exit(1)
 
-plt.figure()
-plt.plot(tharr,wth_pr_dla,'r-')
-plt.plot(tharr,wth_pr_qso,'g-')
-plt.plot(tharr,wth_pr_dlao,'b-')
-plt.plot(tharr,wth_dla,'r--')
-plt.plot(tharr,wth_qso,'g--')
-plt.plot(tharr,wth_dlao,'b--')
-plt.ylim([-0.005,0.025])
-plt.show();
-exit(1)
-#chi^2
-chi2_null=np.dot(dv,np.dot(icv,dv))
-chi2_pred=np.dot(dv-tv,np.dot(icv,dv-tv))
-#Analytic Best-fit and errors
-sigma_b=1./np.sqrt(np.dot(tv,np.dot(icv,tv)))
-b_bf=np.dot(tv,np.dot(icv,dv))/np.dot(tv,np.dot(icv,tv))
-print chi2_null/ndof,chi2_pred/ndof,chi2_null-chi2_pred
-print 1-st.chi2.cdf(chi2_null,ndof),1-st.chi2.cdf(chi2_pred,ndof)
-print "b_DLA = %.3lf +- %.3lf"%(2*b_bf,2*sigma_b)
-
-
-plt.show()
+if plot_stuff :
+    plt.show()
