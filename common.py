@@ -6,37 +6,47 @@ import healpy as hp
 from astropy.io import fits
 from scipy.interpolate import interp1d
 
-nside_cmbl=1024
 nside_qso=64
 fname_mask_cmbl_orig='data/mask.fits'
 fname_alm_cmbl='data/dat_klm.fits'
 fname_dla_orig='data/DLA_DR12_v1.dat'
 fname_qso_orig='data/DR12Q.fits'
-fname_mask_cmbl='data/mask_%d.fits'%nside_cmbl
-fname_cmbl='data/kappa_%d.fits'%nside_cmbl
 fname_dla='data/DLA_DR12_v1.fits'
 fname_qso='data/QSO_DR12_v1.fits'
 fname_mask_qso='data/mask_QSO.fits'
 fname_kappa_cl='data/nlkk.dat'
 
-def reform_data() :
+def reform_data(nside,use_wiener=False) :
     """Generates data in the right format
     """
 
     print "Generating dataset"
+    if use_wiener :
+        fname_mask_cmbl='data/mask_%d_wiener.fits'%nside
+        fname_cmbl='data/kappa_%d_wiener.fits'%nside
+    else :
+        fname_mask_cmbl='data/mask_%d.fits'%nside
+        fname_cmbl='data/kappa_%d.fits'%nside
 
     r=hp.Rotator(coord=['C','G'])
 
     #CMB lensing mask
     if not os.path.isfile(fname_mask_cmbl) :
-        mask=hp.ud_grade(hp.read_map(fname_mask_cmbl_orig),nside_out=nside_cmbl)
+        mask=hp.ud_grade(hp.read_map(fname_mask_cmbl_orig),nside_out=nside)
         mask[mask<1.0]=0
         hp.write_map(fname_mask_cmbl,mask)
 
     #Kappa_CMB
     if not os.path.isfile(fname_cmbl) :
         almk=hp.read_alm(fname_alm_cmbl)
-        k=hp.alm2map(almk,nside_cmbl)
+        if use_wiener :
+            data=np.loadtxt(fname_kappa_cl);
+            ll,nll,cll=np.loadtxt(fname_kappa_cl,unpack=True)
+            cl=np.zeros(int(ll[-1]+1)); cl[int(ll[0]):]=cll
+            nl=np.zeros(int(ll[-1]+1)); nl[int(ll[0]):]=nll
+            wl=(cl-nl)/np.maximum(cl,np.ones_like(cl)*1E-10)
+            almk=hp.almxfl(almk,wl)
+        k=hp.alm2map(almk,nside)
         k*=hp.read_map(fname_mask_cmbl)
         hp.write_map(fname_cmbl,k)
 
@@ -67,9 +77,9 @@ def reform_data() :
         nqso=len(th_qso_g)
 
         #Create QSO mask
-        ipix_qso=hp.ang2pix(64,th_qso_g,phi_qso_g)
-        mp_qso,bins=np.histogram(ipix_qso,range=[0,hp.nside2npix(64)],bins=hp.nside2npix(64))
-        mask_qso=np.zeros(hp.nside2npix(64)); mask_qso[mp_qso>0]=1;
+        ipix_qso=hp.ang2pix(nside_qso,th_qso_g,phi_qso_g)
+        mp_qso,bins=np.histogram(ipix_qso,range=[0,hp.nside2npix(nside_qso)],bins=hp.nside2npix(nside_qso))
+        mask_qso=np.zeros(hp.nside2npix(nside_qso)); mask_qso[mp_qso>0]=1;
 
         #Compute QSO weights
         pz_qso,bins=np.histogram(data_qso['Z_PIPE'],range=[-0.1,7.5],bins=50,normed=True)
@@ -112,6 +122,8 @@ def reform_data() :
 
         #Write QSO mask
         hp.write_map(fname_mask_qso,mask_qso)
+
+    return fname_cmbl,fname_mask_cmbl
 
 def compute_xcorr_c(fname_field,fname_mask,fname_catalog,thmax_deg,nbins,logbin=False,
                     thmin_deg=0,fname_out='none',weight_name='W',cut_name='NO_CUT') :
@@ -217,18 +229,23 @@ def compute_xcorr_py(pos1,w1,map2,mask2,thmax_deg,nbins,nside,logbin=False,thmin
 
     return th,wth,hf_sum,hn_sum
 
-def random_map(mask,fname_cl,fname_out='none') :
+def random_map(seed,mask,fname_cl,fname_out='none',use_wiener=False) :
     """Generates gaussian random field with correct power spectrum
     mask : healpix map containing a binary mask
     fname_cl : path to ascii file containing the field's power spectrum
     fname_out : path to output FITS file
     """
-
+    np.random.seed(seed)
     nside=hp.npix2nside(len(mask))
-    ll,cll,nll=np.loadtxt(fname_cl,unpack=True)
-    cl=np.zeros(int(ll[-1]+1))
-    cl[int(ll[0]):]=cll
-    mp=hp.synfast(cl,nside,lmax=2048,new=True,verbose=False)
+    ll,nll,cll=np.loadtxt(fname_cl,unpack=True)
+    cl=np.zeros(int(ll[-1]+1)); cl[int(ll[0]):]=cll
+    nl=np.zeros(int(ll[-1]+1)); nl[int(ll[0]):]=nll
+    if use_wiener :
+        alm=hp.synalm(cl,lmax=2048,new=True,verbose=False) 
+        alm=hp.almxfl(alm,(cl-nl)/np.maximum(cl,np.ones_like(cl)*1E-10))
+        mp=hp.alm2map(alm,nside,lmax=2048)
+    else :
+        mp=hp.synfast(cl,nside,lmax=2048,new=True,verbose=False)
     mp*=mask
 
     if fname_out!='none' :
@@ -236,21 +253,23 @@ def random_map(mask,fname_cl,fname_out='none') :
 
     return mp
 
-def random_points(mask,npart,fname_out='none',weights=None) :
+def random_points(seed,mask,npart,fname_out='none',weights=None) :
     """Generates set of points randomly sampled on the sphere within a given mask.
     mask : healpix map containing the mask
     npart : number of points
     fname_out : path to output file
     weights : array to draw random weights from
     """
-
     fsky=np.mean(mask)
     nside=hp.npix2nside(len(mask))
     nfull=int(npart/fsky)
-    th=np.arccos(-1+2*np.random.rand(nfull))
-    phi=2*np.pi*np.random.rand(nfull)
+    np.random.seed(seed)
+    rand_nums=np.random.rand(2*nfull)
+    th=np.arccos(-1+2*rand_nums[::2])
+    phi=2*np.pi*rand_nums[1::2]
     ipx=hp.ang2pix(nside,th,phi)
     isgood=np.where(mask[ipx]>0)[0]
+    print len(isgood)
     
     b=90-180*th[isgood]/np.pi
     l=180*phi[isgood]/np.pi

@@ -12,8 +12,8 @@ import cl2wth as c2w
 from scipy.integrate import quad
 import scipy.stats as st
 
-if len(sys.argv)!=2 :
-    print "Usage : analysis_wth.py nbins"
+if len(sys.argv)!=4 :
+    print "Usage : analysis_wth.py nbins nside_cmbl use_wiener"
     exit(1)
 
 plot_stuff=False
@@ -27,21 +27,31 @@ n_qsu=107513
 thmax=1.
 #Number of bins in theta
 nth=int(sys.argv[1])
+#Resolution of the CMB lensing map
+nside_cmbl=int(sys.argv[2])
+do_wiener=int(sys.argv[3])
 #Maximum angle to use in the fit
 th_thr=1.0
 #Do we compute the 2PCF using the slow python implementation?
 compute_with_python=False
 
+use_wiener=False
+if do_wiener>0 :
+    use_wiener=True
+
 #Create output directory
-outdir="outputs_nb%d/"%nth
+if use_wiener :
+    outdir="outputs_ns%d_nb%d_wiener/"%(nside_cmbl,nth)
+else :
+    outdir="outputs_ns%d_nb%d/"%(nside_cmbl,nth)
 os.system("mkdir -p "+outdir)
 
 #Generate data in right format
-cmm.reform_data()
+fname_cmbl,fname_mask_cmbl=cmm.reform_data(nside_cmbl,use_wiener=use_wiener)
 
 print "Reading kappa map and mask"
-mask=hp.read_map(cmm.fname_mask_cmbl,verbose=False)
-field=hp.read_map(cmm.fname_cmbl,verbose=False)
+mask =hp.read_map(fname_mask_cmbl,verbose=False)
+field=hp.read_map(fname_cmbl,verbose=False)
 
 print "Reading QSO mask"
 mask_qso=hp.read_map(cmm.fname_mask_qso,verbose=False)
@@ -52,16 +62,16 @@ print "Computing the DLA 2PCF"
 data_dla=(fits.open(cmm.fname_dla))[1].data
 data_qso=(fits.open(cmm.fname_qso))[1].data
 data_dla=(fits.open(cmm.fname_dla))[1].data
-th_dla,wth_dla,hf_dla,hm_dla=cmm.compute_xcorr_c(cmm.fname_cmbl,cmm.fname_mask_cmbl,cmm.fname_dla,
+th_dla,wth_dla,hf_dla,hm_dla=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla,
                                                  thmax,nth,fname_out=outdir+"corr_c_dla.txt")
 
 print "Computing the QSO 2PCF"
-th_qso,wth_qso,hf_qso,hm_qso=cmm.compute_xcorr_c(cmm.fname_cmbl,cmm.fname_mask_cmbl,cmm.fname_qso,
+th_qso,wth_qso,hf_qso,hm_qso=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,
                                                  thmax,nth,fname_out=outdir+"corr_c_qso.txt")
 wth_dlao=wth_dla-wth_qso
 
 print "Computing the QSO-UNIFORM 2PCF"
-th_qsu,wth_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(cmm.fname_cmbl,cmm.fname_mask_cmbl,cmm.fname_qso,
+th_qsu,wth_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,
                                                  thmax,nth,fname_out=outdir+"corr_c_qsu.txt",
                                                  cut_name='UNIHI',weight_name='NO_WEIGHT')
 
@@ -73,23 +83,29 @@ def get_random_corr(isim) :
     if (not ((os.path.isfile(fname_dla)) and (os.path.isfile(fname_qso)) and (os.path.isfile(fname_qsu)))) :
         print isim
         cleanup=True
-        cmm.random_points(mask_qso,n_dla,fname_out='data/dla_random_%d.fits'%isim,weights=data_dla['W'])
-        cmm.random_points(mask_qso,n_qso,fname_out='data/qso_random_%d.fits'%isim,weights=data_qso['W'])
-        cmm.random_points(mask_qso,n_qsu,fname_out='data/qsu_random_%d.fits'%isim,weights=None)
-        cmm.random_map(mask,cmm.fname_kappa_cl,fname_out='data/map_random_%d.fits'%isim)
+        cmm.random_points(1000+isim,mask_qso,n_dla,fname_out=outdir+'dla_random_%d.fits'%isim,
+                          weights=data_dla['W'])
+        cmm.random_points(1000+isim,mask_qso,n_qso,fname_out=outdir+'qso_random_%d.fits'%isim,
+                          weights=data_qso['W'])
+        cmm.random_points(1000+isim,mask_qso,n_qsu,fname_out=outdir+'qsu_random_%d.fits'%isim,
+                          weights=None)
+        cmm.random_map(1000+isim,mask,cmm.fname_kappa_cl,fname_out=outdir+'map_random_%d.fits'%isim,
+                       use_wiener=use_wiener)
 
-    th_dla,w_dla,hf_dla,hm_dla=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
-                                                   'data/dla_random_%d.fits'%isim,thmax,nth,
+    th_dla,w_dla,hf_dla,hm_dla=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+                                                   outdir+'dla_random_%d.fits'%isim,thmax,nth,
                                                    fname_out=fname_dla)
-    th_qso,w_qso,hf_qso,hm_qso=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
-                                                   'data/qso_random_%d.fits'%isim,thmax,nth,
+    th_qso,w_qso,hf_qso,hm_qso=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+                                                   outdir+'qso_random_%d.fits'%isim,thmax,nth,
                                                    fname_out=fname_qso)
-    th_qsu,w_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c('data/map_random_%d.fits'%isim,cmm.fname_mask_cmbl,
-                                                   'data/qsu_random_%d.fits'%isim,thmax,nth,
+    th_qsu,w_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+                                                   outdir+'qsu_random_%d.fits'%isim,thmax,nth,
                                                    weight_name='NO_WEIGHT',fname_out=fname_qsu)
 
     if cleanup :
-        os.system('rm data/dla_random_%d.fits data/qso_random_%d.fits data/qsu_random_%d.fits data/map_random_%d.fits'%(isim,isim,isim,isim))
+        os.system('rm '+
+                  outdir+'dla_random_%d.fits '%isim+outdir+'qso_random_%d.fits '%isim+
+                  outdir+'qsu_random_%d.fits '%isim+outdir+'map_random_%d.fits '%isim)
 
     return th_dla,w_dla,hf_dla,hm_dla,th_qso,w_qso,hf_qso,hm_qso,th_qsu,w_qsu,hf_qsu,hm_qsu
 
