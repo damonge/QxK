@@ -5,6 +5,7 @@
 #include <omp.h>
 #include <numpy/arrayobject.h>
 #include <gsl/gsl_integration.h>
+#include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 #include <gsl/gsl_sf_bessel.h>
 
@@ -33,7 +34,10 @@ IntWthParam *int_wth_param_new(int nl,double *llist,double *cllist)
   p->l0=llist[0];
   p->lf=llist[nl-1];
   p->clf=cllist[nl-1];
-  p->tilt=log(cllist[nl-1]/cllist[nl-2])/log(llist[nl-1]/llist[nl-2]);
+  if((cllist[nl-1]<=0) || (cllist[nl-2]<=0))
+    p->tilt=0;
+  else 
+    p->tilt=log(cllist[nl-1]/cllist[nl-2])/log(llist[nl-1]/llist[nl-2]);
 
   p->ia_cl=gsl_interp_accel_alloc();
   p->spl_cl=gsl_spline_alloc(gsl_interp_cspline,nl);
@@ -47,7 +51,7 @@ static double eval_cl(double l,IntWthParam *p)
   if(l<=p->l0)
     return 0;
   else if(l>=p->lf)
-    return p->clf*pow(l/p->lf,p->tilt);
+    return 0;//p->clf*pow(l/p->lf,p->tilt);
   else
     return gsl_spline_eval(p->spl_cl,l,p->ia_cl);
 }
@@ -64,7 +68,7 @@ static double wth_integrand(double l,void *params)
 static void wth_all(int nth,double *tharr,double *wtharr,
 		    int nl,double *larr,double *clarr)
 {
-
+  gsl_set_error_handler_off();
 #pragma omp parallel default(none)		\
   shared(nth,tharr,wtharr,nl,larr,clarr)
   {

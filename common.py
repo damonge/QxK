@@ -288,9 +288,9 @@ def random_points(seed,mask,npart,fname_out='none',weights=None) :
 def bias_qso(z) :
     """QSO bias according to 1705.04718
     """
-    return 0.278*((1+z)**2-6.565)+2.393
+    return 1.*np.ones_like(z)
 
 def bias_dla(z) :
     """Default DLA bias
     """
-    return 2.*np.ones_like(z)
+    return 1.*np.ones_like(z)
