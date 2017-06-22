@@ -41,8 +41,7 @@ AC_CHECK_FUNCS([pow sqrt])
 
 AC_CONFIG_FILES([Makefile
 		 include/Makefile
-		 class/Makefile
-		 angpow/Makefile])
+		 class/Makefile])
 
 AC_OUTPUT
 

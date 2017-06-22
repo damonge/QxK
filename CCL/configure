@@ -16887,7 +16887,7 @@ fi
 done
 
 
-ac_config_files="$ac_config_files Makefile include/Makefile class/Makefile angpow/Makefile"
+ac_config_files="$ac_config_files Makefile include/Makefile class/Makefile"
 
 
 cat >confcache <<\_ACEOF
@@ -18012,7 +18012,6 @@ do
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "include/Makefile") CONFIG_FILES="$CONFIG_FILES include/Makefile" ;;
     "class/Makefile") CONFIG_FILES="$CONFIG_FILES class/Makefile" ;;
-    "angpow/Makefile") CONFIG_FILES="$CONFIG_FILES angpow/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac
