@@ -107,25 +107,24 @@ else:
 
 #calculate full inverse covariance matrix for all ell bins
 
-else:
-    #Calculate error of Cls using simulations
-    sim_qso = np.zeros((len(ell_arr),nsim))
-    sim_dla = np.zeros((len(ell_arr),nsim))
-    for i in range(nsim):
-        sim_qso[:,i] = pickle.load(open(dir+'/pickled/sim_data'+str(bsize)+'/cps_qso_'+str(i).zfill(2)+'_'+str(bsize)+'.pkl','rb'))[0]
-        sim_dla[:,i] = pickle.load(open(dir+'/pickled/sim_data'+str(bsize)+'/cps_dla_'+str(i).zfill(2)+'_'+str(bsize)+'.pkl','rb'))[0]
-    average_qsoXqso = np.average(sim_qso**2,axis=1)
-    average_dlaXdla = np.average(sim_dla**2,axis=1)
-    average_qsoXdla = abs(np.average((sim_qso)*(sim_dla),axis=1))
-    qsoP0 = sim_qso[:len(sim_qso)-1,:]
-    qsoP1 = sim_qso[1:,:]
-    dlaP0 = sim_dla[:len(sim_qso)-1,:]
-    dlaP1 = sim_dla[1:,:]
-    average_qsoXqsoP1 = np.average(qsoP0*qsoP1,axis=1)
-    average_dlaXdlaP1 = np.average(dlaP0*dlaP1,axis=1)
-    diagP2 = np.zeros(2*len(ell_arr)-2)
-    diagP2[::2] = average_qsoXqsoP1
-    diagP2[1::2] = average_dlaXdlaP1
+#Calculate error of Cls using simulations
+sim_qso = np.zeros((len(ell_arr),nsim))
+sim_dla = np.zeros((len(ell_arr),nsim))
+for i in range(nsim):
+    sim_qso[:,i] = pickle.load(open(dir+'/pickled/sim_data'+str(bsize)+'/cps_qso_'+str(i).zfill(2)+'_'+str(bsize)+'.pkl','rb'))[0]
+    sim_dla[:,i] = pickle.load(open(dir+'/pickled/sim_data'+str(bsize)+'/cps_dla_'+str(i).zfill(2)+'_'+str(bsize)+'.pkl','rb'))[0]
+average_qsoXqso = np.average(sim_qso**2,axis=1)
+average_dlaXdla = np.average(sim_dla**2,axis=1)
+average_qsoXdla = abs(np.average((sim_qso)*(sim_dla),axis=1))
+qsoP0 = sim_qso[:len(sim_qso)-1,:]
+qsoP1 = sim_qso[1:,:]
+dlaP0 = sim_dla[:len(sim_qso)-1,:]
+dlaP1 = sim_dla[1:,:]
+average_qsoXqsoP1 = np.average(qsoP0*qsoP1,axis=1)
+average_dlaXdlaP1 = np.average(dlaP0*dlaP1,axis=1)
+diagP2 = np.zeros(2*len(ell_arr)-2)
+diagP2[::2] = average_qsoXqsoP1
+diagP2[1::2] = average_dlaXdlaP1
 
 diag = np.zeros(2*len(ell_arr))
 diag[::2] = average_qsoXqso
@@ -197,4 +196,3 @@ dla_error = np.sqrt(CovB[1,1])
 
 
 print('\n','b_qso:',str(np.around(b_qso,2))+' ± '+str(np.around(qso_error,2)),'\n','b_dla:',str(np.around(b_dla,2))+' ± '+str(np.around(dla_error,2)),'\n','dof:  ',dof,'\n','chi2: ',np.around(chi2,2),'\n','prob: ',np.around(prob,2),'\n')
-
