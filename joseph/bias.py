@@ -198,22 +198,3 @@ dla_error = np.sqrt(CovB[1,1])
 
 print('\n','b_qso:',str(np.around(b_qso,2))+' ± '+str(np.around(qso_error,2)),'\n','b_dla:',str(np.around(b_dla,2))+' ± '+str(np.around(dla_error,2)),'\n','dof:  ',dof,'\n','chi2: ',np.around(chi2,2),'\n','prob: ',np.around(prob,2),'\n')
 
-if args.plot:
-    b_y = np.arange(np.round(b_qso)-3,np.round(b_qso)+3,0.01)
-    b_x = np.arange(np.round(b_dla)-3,np.round(b_dla)+3,0.01)
-    l = len(b_x)
-    B = np.zeros((l,l))
-    for i in range(l):
-        for j in range(l):
-            B[i,j] = np.exp(loglike([b_y[i],b_x[j]]))
-
-    fig = plt.figure()
-    ax = fig.add_subplot(1,1,1)
-    plt.imshow(B,interpolation='nearest')
-    ax.set_yticklabels(np.append('',np.arange(np.round(b_qso)-3,np.round(b_qso)+3)))
-    ax.set_xticklabels(np.append('',np.arange(np.round(b_dla)-3,np.round(b_dla)+3)))
-    plt.colorbar()
-    plt.xlabel('b_dla')
-    plt.ylabel('b_qso')
-    plt.show()
-    plt.close()
