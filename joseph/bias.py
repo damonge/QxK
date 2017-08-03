@@ -71,6 +71,9 @@ lens = ccl.ClTracerCMBLensing(cosmo)
 bias_qso = np.ones(rdshift.size)
 bias_dla = np.ones(rdshift.size)
 
+b = nmt.NmtBin(2048,nlb= bsize)
+ell_arr=b.get_effective_ells()
+
 source_dla = ccl.ClTracerNumberCounts(cosmo, False, False, z=rdshift, n=n_dla, bias= bias_dla)
 theory_dla = ccl.angular_cl(cosmo,lens,source_dla,ell_arr,l_limber=-1)
 
@@ -85,8 +88,6 @@ if args.nsim == None:
 else:
     nsim = args.nsim
 
-b = nmt.NmtBin(2048,nlb= bsize)
-ell_arr=b.get_effective_ells()
 
 min_ell_bin = 0
 max_ell_bin = (np.abs(ell_arr-max_ell)).argmin()
