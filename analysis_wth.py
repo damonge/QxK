@@ -12,6 +12,13 @@ import cl2wth as c2w
 from scipy.integrate import quad
 import scipy.stats as st
 
+from matplotlib import rc
+rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
+## for Palatino and other serif fonts use:
+#rc('font',**{'family':'serif','serif':['Palatino']})
+rc('text', usetex=True)
+
+
 if len(sys.argv)!=7 :
     print "Usage : analysis_wth.py nbins nside_cmbl use_wiener[0,1] nsims randomize_points[0,1] plot_stuff[0,1]"
     exit(1)
@@ -83,20 +90,33 @@ covar_dlo=np.mean(d['randoms'][:,3,1,:,None]*d['randoms'][:,3,1,None,:],axis=0)-
 corr_dlo=covar_dlo/np.sqrt(np.diag(covar_dlo)[None,:]*np.diag(covar_dlo)[:,None])
 
 if plot_stuff :
+#    plt.figure()
+#    plt.imshow(corr_dla,origin='lower',interpolation='nearest')
+#    
+#    plt.figure()
+#    plt.imshow(corr_qso,origin='lower',interpolation='nearest')
+#    
+#    plt.figure()
+#    plt.imshow(corr_qsu,origin='lower',interpolation='nearest')
+#    
+#    plt.figure()
+#    plt.imshow(corr_dlo,origin='lower',interpolation='nearest')
+#
     plt.figure()
-    plt.imshow(corr_dla,origin='lower',interpolation='nearest')
-    
-    plt.figure()
-    plt.imshow(corr_qso,origin='lower',interpolation='nearest')
-    
-    plt.figure()
-    plt.imshow(corr_qsu,origin='lower',interpolation='nearest')
-    
-    plt.figure()
-    plt.imshow(corr_dlo,origin='lower',interpolation='nearest')
-
-    plt.figure()
-    plt.imshow(corr_all,origin='lower',interpolation='nearest')
+    ax=plt.gca()
+    im=ax.imshow(corr_all,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
+    cb=plt.colorbar(im,ax=ax)
+    ax.text(0.27,0.45,'${\\rm DLA-DLA}$',transform=ax.transAxes)
+    ax.text(0.27,0.95,'${\\rm DLA-QSO}$',transform=ax.transAxes)
+    ax.text(0.77,0.95,'${\\rm QSO-QSO}$',transform=ax.transAxes)
+    ax.text(0.77,0.45,'${\\rm DLA-QSO}$',transform=ax.transAxes)
+    ax.set_xlabel('${\\rm bin}\\,i$',fontsize=14)
+    ax.set_ylabel('${\\rm bin}\\,j$',fontsize=14)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.savefig("doc/corrmat_wth.pdf",bbox_inches='tight')
 
 if verbose :
     print " Computing theory prediction"
@@ -206,14 +226,20 @@ print "  chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2,ndof-1,pte)
 print " ------"
 if plot_stuff :
     plt.figure()
-    plt.plot(tharr_th,b_bf*wth_th_dlo,'b-',lw=2,label='Best fit')
-    plt.errorbar(tharr[i_good],dv,yerr=np.sqrt(np.diag(covar_dlo)[i_good]),fmt='bo',
-                 label='Data')
-    plt.xlim([0,th_thr])
-    plt.ylim([-0.005,0.025])
-    plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
-    plt.ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle$',fontsize=18)
-    plt.legend(loc='upper right',frameon=False,fontsize=16)
+    ax=plt.gca()
+    ax.errorbar(tharr,1E3*wth_dlo,yerr=1E3*np.sqrt(np.diag(covar_dlo)),fmt='ko',
+                label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
+    ax.plot(tharr_th,b_bf*1E3*wth_th_dlo,'k-',lw=2,label='${\\rm best\\,\\,fit}$')
+    ax.set_xlim([0,th_thr])
+    ax.set_ylim([-0.1,0.35])
+    ax.set_xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=14)
+    ax.set_ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle\\times10^3$',fontsize=14)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.legend(loc='upper right',frameon=False,fontsize=14)
+    plt.savefig("doc/wth_x1.pdf",bbox_inches='tight')
 
 #Fitting both 2PCFs with b_DLA and b_QSO
 dv=np.concatenate((wth_dla[i_good],wth_qso[i_good]));
@@ -241,6 +267,24 @@ print "  b_QSO = %.3lf +- %.3lf"%(b_bf[1],sigma_b[1])
 print "  r = %.3lE"%(cov_b[0,1]/(sigma_b[0]*sigma_b[1]))
 print "  chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2,2*ndof-2,pte)
 print " "
+if plot_stuff :
+    plt.figure()
+    ax=plt.gca()
+    ax.plot(tharr_th,b_bf[0]*1E3*wth_th_dlo+b_bf[1]*1E3*wth_th_qso,'b-',lw=2)
+    ax.plot(tharr_th,b_bf[1]*1E3*wth_th_qso,'r-',lw=2)
+    ax.errorbar(tharr,1E3*wth_dla,yerr=1E3*np.sqrt(np.diag(covar_all[:nth,:nth])),fmt='bo',label='$\\kappa\\times{\\rm DLA}$')
+    ax.errorbar(tharr,1E3*wth_qso,yerr=1E3*np.sqrt(np.diag(covar_all[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
+    ax.plot([-1,-1],[-1,-1],'k-',lw=2,label='${\\rm best\\,\\,fit}$')
+    ax.set_xlim([0,th_thr])
+    ax.set_ylim([-0.1,0.5])
+    ax.set_xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=14)
+    ax.set_ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle\\times10^3$',fontsize=14)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.legend(loc='upper right',frameon=False,fontsize=14)
+    plt.savefig("doc/wth_x2.pdf",bbox_inches='tight')
 
 if plot_stuff :
     plt.show()

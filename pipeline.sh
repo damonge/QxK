@@ -45,10 +45,12 @@ do
     for nth in 16 27
     do
 	echo "Nside = ${nside}, n_theta = ${nth}"
-	python analysis_wth.py ${nth} ${nside} 0 ${nsims} 0 0
+#	python analysis_wth.py ${nth} ${nside} 0 ${nsims} 0 0
 	echo "Nside = ${nside}, n_theta = ${nth}, randomized points"
-	python analysis_wth.py ${nth} ${nside} 0 ${nsims} 1 0
+#	python analysis_wth.py ${nth} ${nside} 0 ${nsims} 1 0
 	echo "Nside = ${nside}, n_theta = ${nth}, Wiener-filtered"
-	python analysis_wth.py ${nth} ${nside} 1 ${nsims} 0 0
+#	python analysis_wth.py ${nth} ${nside} 1 ${nsims} 0 0
     done
 done
+
+python analysis_wth.py 16 2048 1 100 0 1
