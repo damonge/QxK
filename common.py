@@ -31,12 +31,14 @@ def reform_data(nside,use_wiener=False) :
     r=hp.Rotator(coord=['C','G'])
 
     #CMB lensing mask
+    print " Generating lensing mask"
     if not os.path.isfile(fname_mask_cmbl) :
-        mask=hp.ud_grade(hp.read_map(fname_mask_cmbl_orig),nside_out=nside)
+        mask=hp.ud_grade(hp.read_map(fname_mask_cmbl_orig,verbose=False),nside_out=nside)
         mask[mask<1.0]=0
         hp.write_map(fname_mask_cmbl,mask)
 
     #Kappa_CMB
+    print " Generating kappa map"
     if not os.path.isfile(fname_cmbl) :
         almk=hp.read_alm(fname_alm_cmbl)
         if use_wiener :
@@ -46,13 +48,15 @@ def reform_data(nside,use_wiener=False) :
             nl=np.zeros(int(ll[-1]+1)); nl[int(ll[0]):]=nll
             wl=(cl-nl)/np.maximum(cl,np.ones_like(cl)*1E-10)
             almk=hp.almxfl(almk,wl)
-        k=hp.alm2map(almk,nside)
-        k*=hp.read_map(fname_mask_cmbl)
+        k=hp.alm2map(almk,nside,verbose=False)
+        k*=hp.read_map(fname_mask_cmbl,verbose=False)
         hp.write_map(fname_cmbl,k)
 
     #DLA and QSO data
+    print " Generating DLA and QSO fits files"
     if not (os.path.isfile(fname_qso) and os.path.isfile(fname_dla) and os.path.isfile(fname_mask_qso)) :
         #Read DLA data
+        print "  DLA"
         data_dla=np.genfromtxt(fname_dla_orig,skip_header=2,
                                dtype='i8,S16,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8,f8',
                                names=['ThingID','MJD-plate-fiber','RA','DEC','zqso','fDLA','fBAL',
@@ -68,6 +72,7 @@ def reform_data(nside,use_wiener=False) :
         ndla=len(th_dla_g)
         
         #Read QSO data
+        print "  QSO"
         data_qso=(fits.open(fname_qso_orig))[1].data
         th_qso_c =(90-data_qso['DEC'])*np.pi/180.
         phi_qso_c=data_qso['RA']*np.pi/180.
@@ -77,6 +82,7 @@ def reform_data(nside,use_wiener=False) :
         nqso=len(th_qso_g)
 
         #Create QSO mask
+        print "  Mask"
         ipix_qso=hp.ang2pix(nside_qso,th_qso_g,phi_qso_g)
         mp_qso,bins=np.histogram(ipix_qso,range=[0,hp.nside2npix(nside_qso)],bins=hp.nside2npix(nside_qso))
         mask_qso=np.zeros(hp.nside2npix(nside_qso)); mask_qso[mp_qso>0]=1;
@@ -260,6 +266,18 @@ def random_points(seed,mask,npart,fname_out='none',weights=None) :
     fname_out : path to output file
     weights : array to draw random weights from
     """
+
+    data_dla=(fits.open(fname_dla))[1].data
+    data_qso=(fits.open(fname_qso))[1].data
+    pz_qso,bins=np.histogram(data_qso['Z_PIPE'],range=[-0.1,7.5],bins=50,normed=True)
+    pz_par,bins=np.histogram(data_dla['zqso'  ],range=[-0.1,7.5],bins=50,normed=True)
+    pz_dla,bins=np.histogram(data_dla['z_abs' ],range=[-0.1,7.5],bins=50,normed=True)
+    zarr=0.5*(bins[1:]+bins[:-1])
+    w_weight=np.zeros_like(pz_qso);
+    igood=np.where(pz_qso>0)[0];
+    w_weight[igood]=pz_par[igood]/pz_qso[igood]; w_weight[zarr>5.5]=0
+    wfunc=interp1d(zarr,w_weight,bounds_error=False,fill_value=False,kind='nearest')
+
     fsky=np.mean(mask)
     nside=hp.npix2nside(len(mask))
     nfull=int(npart/fsky)
@@ -294,3 +312,36 @@ def bias_dla(z) :
     """Default DLA bias
     """
     return 1.*np.ones_like(z)
+
+#def random_points(seed,mask,npart,fname_out='none',weights=None) :
+#    """Generates set of points randomly sampled on the sphere within a given mask.
+#    mask : healpix map containing the mask
+#    npart : number of points
+#    fname_out : path to output file
+#    weights : array to draw random weights from
+#    """
+#    fsky=np.mean(mask)
+#    nside=hp.npix2nside(len(mask))
+#    nfull=int(npart/fsky)
+#    np.random.seed(seed)
+#    rand_nums=np.random.rand(2*nfull)
+#    th=np.arccos(-1+2*rand_nums[::2])
+#    phi=2*np.pi*rand_nums[1::2]
+#    ipx=hp.ang2pix(nside,th,phi)
+#    isgood=np.where(mask[ipx]>0)[0]
+#    print len(isgood)
+#    
+#    b=90-180*th[isgood]/np.pi
+#    l=180*phi[isgood]/np.pi
+#    
+#    if weights!=None :
+#        w=np.random.choice(weights,size=len(isgood))
+#    else :
+#        w=np.ones_like(b)
+#
+#    if fname_out!='none' :
+#        tbhdu=pf.new_table([pf.Column(name='B',format='D',array=b),
+#                            pf.Column(name='L',format='D',array=l),
+#                            pf.Column(name='W',format='D',array=w)])
+#        tbhdu.writeto(fname_out)
+

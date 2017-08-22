@@ -12,17 +12,11 @@ import cl2wth as c2w
 from scipy.integrate import quad
 import scipy.stats as st
 
-if len(sys.argv)!=4 :
-    print "Usage : analysis_wth.py nbins nside_cmbl use_wiener"
+if len(sys.argv)!=7 :
+    print "Usage : analysis_wth.py nbins nside_cmbl use_wiener[0,1] nsims randomize_points[0,1] plot_stuff[0,1]"
     exit(1)
 
-plot_stuff=True
-#Number of DLAs in the catalog
-n_dla=34050
-#Number of QSOs in the catalog
-n_qso=297301
-#Number of QSOs in the UNIFORM catalog
-n_qsu=107513
+verbose=False
 #Maximum scale (deg) in the computation of the 2PCF
 thmax=1.
 #Number of bins in theta
@@ -30,118 +24,62 @@ nth=int(sys.argv[1])
 #Resolution of the CMB lensing map
 nside_cmbl=int(sys.argv[2])
 do_wiener=int(sys.argv[3])
+nsims=int(sys.argv[4])
+do_randomize_points=int(sys.argv[5])
+do_plot_stuff=int(sys.argv[6])
 #Maximum angle to use in the fit
 th_thr=1.0
-#Do we compute the 2PCF using the slow python implementation?
-compute_with_python=False
 
+randomize_points=False
+if do_randomize_points>0 :
+    randomize_points=True
 use_wiener=False
 if do_wiener>0 :
     use_wiener=True
+plot_stuff=False
+if do_plot_stuff>0 :
+    plot_stuff=True
 
 #Create output directory
+outdir="outputs_ns%d_nb%d"%(nside_cmbl,nth)
 if use_wiener :
-    outdir="outputs_ns%d_nb%d_wiener/"%(nside_cmbl,nth)
-else :
-    outdir="outputs_ns%d_nb%d/"%(nside_cmbl,nth)
-os.system("mkdir -p "+outdir)
+    outdir+="_wiener"
+if randomize_points :
+    outdir+="_randp"
+outdir+="/"
 
-#Generate data in right format
-fname_cmbl,fname_mask_cmbl=cmm.reform_data(nside_cmbl,use_wiener=use_wiener)
+fname_alldata=outdir+"wth_qxk_all"
 
-print "Reading kappa map and mask"
-mask =hp.read_map(fname_mask_cmbl,verbose=False)
-field=hp.read_map(fname_cmbl,verbose=False)
-
-print "Reading QSO mask"
-mask_qso=hp.read_map(cmm.fname_mask_qso,verbose=False)
-ndens_qso=n_qso/(4*np.pi*np.mean(mask_qso))
-ndens_dla=n_dla/(4*np.pi*np.mean(mask_qso))
-
-print "Computing the DLA 2PCF"
 data_dla=(fits.open(cmm.fname_dla))[1].data
 data_qso=(fits.open(cmm.fname_qso))[1].data
-data_dla=(fits.open(cmm.fname_dla))[1].data
-th_dla,wth_dla,hf_dla,hm_dla=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla,
-                                                 thmax,nth,fname_out=outdir+"corr_c_dla.txt")
 
-print "Computing the QSO 2PCF"
-th_qso,wth_qso,hf_qso,hm_qso=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,
-                                                 thmax,nth,fname_out=outdir+"corr_c_qso.txt")
+d=np.load(fname_alldata+'.npz')
+
+tharr=np.mean(d['randoms'][:,0,0,:],axis=0)
+wth_dla=d['wth_dla']
+wth_qso=d['wth_qso']
 wth_dlo=wth_dla-wth_qso
 
-print "Computing the QSO-UNIFORM 2PCF"
-th_qsu,wth_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,
-                                                 thmax,nth,fname_out=outdir+"corr_c_qsu.txt",
-                                                 cut_name='UNIHI',weight_name='NO_WEIGHT')
-
-def get_random_corr(isim) :
-    cleanup=False
-    fname_dla=outdir+'corr_c_dla_random%d.txt'%isim
-    fname_qso=outdir+'corr_c_qso_random%d.txt'%isim
-    fname_qsu=outdir+'corr_c_qsu_random%d.txt'%isim
-    if (not ((os.path.isfile(fname_dla)) and (os.path.isfile(fname_qso)) and (os.path.isfile(fname_qsu)))) :
-        print isim
-        cleanup=True
-        cmm.random_points(1000+isim,mask_qso,n_dla,fname_out=outdir+'dla_random_%d.fits'%isim,
-                          weights=data_dla['W'])
-        cmm.random_points(1000+isim,mask_qso,n_qso,fname_out=outdir+'qso_random_%d.fits'%isim,
-                          weights=data_qso['W'])
-        cmm.random_points(1000+isim,mask_qso,n_qsu,fname_out=outdir+'qsu_random_%d.fits'%isim,
-                          weights=None)
-        cmm.random_map(1000+isim,mask,cmm.fname_kappa_cl,fname_out=outdir+'map_random_%d.fits'%isim,
-                       use_wiener=use_wiener)
-
-    th_dla,w_dla,hf_dla,hm_dla=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
-                                                   outdir+'dla_random_%d.fits'%isim,thmax,nth,
-                                                   fname_out=fname_dla)
-    th_qso,w_qso,hf_qso,hm_qso=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
-                                                   outdir+'qso_random_%d.fits'%isim,thmax,nth,
-                                                   fname_out=fname_qso)
-    th_qsu,w_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
-                                                   outdir+'qsu_random_%d.fits'%isim,thmax,nth,
-                                                   weight_name='NO_WEIGHT',fname_out=fname_qsu)
-
-    if cleanup :
-        os.system('rm '+
-                  outdir+'dla_random_%d.fits '%isim+outdir+'qso_random_%d.fits '%isim+
-                  outdir+'qsu_random_%d.fits '%isim+outdir+'map_random_%d.fits '%isim)
-
-    return th_dla,w_dla,hf_dla,hm_dla,th_qso,w_qso,hf_qso,hm_qso,th_qsu,w_qsu,hf_qsu,hm_qsu
-
-nsims=1000
-print "Generating %d random measurements"%nsims
-data_randoms=np.zeros([nsims,4,4,nth])
-data_randoms_2=np.zeros([nsims,4,2*nth])
-for i in np.arange(nsims) :
-    td,wd,fd,md,tq,wq,fq,mq,tu,wu,fu,mu=get_random_corr(i)
-    data_randoms[i,0,:,:]=np.array([td,wd,fd,md])
-    data_randoms[i,1,:,:]=np.array([tq,wq,fq,mq])
-    data_randoms[i,2,:,:]=np.array([tu,wu,fu,mu])
-    data_randoms[i,3,:,:]=data_randoms[i,0,:,:]-data_randoms[i,1,:,:]
-    data_randoms_2[i,:,:nth]=np.array([td,wd,fd,md])
-    data_randoms_2[i,:,nth:]=np.array([tq,wq,fq,mq])
-tharr=np.mean(data_randoms[:,0,0,:],axis=0)
-
-print  "Computing covariance matrices"
-mean_all=np.mean(data_randoms_2[:,1,:],axis=0)
-covar_all=np.mean(data_randoms_2[:,1,:,None]*data_randoms_2[:,1,None,:],axis=0)-mean_all[:,None]*mean_all[None,:]
+if verbose :
+    print " Computing covariance matrices"
+mean_all=np.mean(d['randoms_2'][:,1,:],axis=0)
+covar_all=np.mean(d['randoms_2'][:,1,:,None]*d['randoms_2'][:,1,None,:],axis=0)-mean_all[:,None]*mean_all[None,:]
 corr_all=covar_all/np.sqrt(np.diag(covar_all)[None,:]*np.diag(covar_all)[:,None])
 
-mean_dla=np.mean(data_randoms[:,0,1,:],axis=0)
-covar_dla=np.mean(data_randoms[:,0,1,:,None]*data_randoms[:,0,1,None,:],axis=0)-mean_dla[:,None]*mean_dla[None,:]
+mean_dla=np.mean(d['randoms'][:,0,1,:],axis=0)
+covar_dla=np.mean(d['randoms'][:,0,1,:,None]*d['randoms'][:,0,1,None,:],axis=0)-mean_dla[:,None]*mean_dla[None,:]
 corr_dla=covar_dla/np.sqrt(np.diag(covar_dla)[None,:]*np.diag(covar_dla)[:,None])
 
-mean_qso=np.mean(data_randoms[:,1,1,:],axis=0)
-covar_qso=np.mean(data_randoms[:,1,1,:,None]*data_randoms[:,1,1,None,:],axis=0)-mean_qso[:,None]*mean_qso[None,:]
+mean_qso=np.mean(d['randoms'][:,1,1,:],axis=0)
+covar_qso=np.mean(d['randoms'][:,1,1,:,None]*d['randoms'][:,1,1,None,:],axis=0)-mean_qso[:,None]*mean_qso[None,:]
 corr_qso=covar_qso/np.sqrt(np.diag(covar_qso)[None,:]*np.diag(covar_qso)[:,None])
 
-mean_qsu=np.mean(data_randoms[:,2,1,:],axis=0)
-covar_qsu=np.mean(data_randoms[:,2,1,:,None]*data_randoms[:,2,1,None,:],axis=0)-mean_qsu[:,None]*mean_qsu[None,:]
+mean_qsu=np.mean(d['randoms'][:,2,1,:],axis=0)
+covar_qsu=np.mean(d['randoms'][:,2,1,:,None]*d['randoms'][:,2,1,None,:],axis=0)-mean_qsu[:,None]*mean_qsu[None,:]
 corr_qsu=covar_qsu/np.sqrt(np.diag(covar_qsu)[None,:]*np.diag(covar_qsu)[:,None])
 
-mean_dlo=np.mean(data_randoms[:,3,1,:],axis=0)
-covar_dlo=np.mean(data_randoms[:,3,1,:,None]*data_randoms[:,3,1,None,:],axis=0)-mean_dlo[:,None]*mean_dlo[None,:]
+mean_dlo=np.mean(d['randoms'][:,3,1,:],axis=0)
+covar_dlo=np.mean(d['randoms'][:,3,1,:,None]*d['randoms'][:,3,1,None,:],axis=0)-mean_dlo[:,None]*mean_dlo[None,:]
 corr_dlo=covar_dlo/np.sqrt(np.diag(covar_dlo)[None,:]*np.diag(covar_dlo)[:,None])
 
 if plot_stuff :
@@ -160,7 +98,8 @@ if plot_stuff :
     plt.figure()
     plt.imshow(corr_all,origin='lower',interpolation='nearest')
 
-print "Computing theory prediction"
+if verbose :
+    print " Computing theory prediction"
 def get_nz_oversample(bins,nzar,nbins) :
     zsub=(bins[1:]+bins[:-1])*0.5
     nsub=(nzar+0.0)/((np.sum(nzar)+0.)*(bins[1]-bins[0]))
@@ -175,7 +114,8 @@ nz,bins=np.histogram(data_dla['zqso'],range=[0,7],bins=50)
 zarr_qso,nzarr_qso=get_nz_oversample(bn,nz,256)
 bzarr_qso=cmm.bias_qso(zarr_qso)
 
-print "  Cls"
+if verbose :
+    print "   Cls"
 ll,nll,cll=np.loadtxt(cmm.fname_kappa_cl,unpack=True)
 cl=np.zeros(int(ll[-1]+1)); cl[int(ll[0]):]=cll
 nl=np.zeros(int(ll[-1]+1)); nl[int(ll[0]):]=nll
@@ -204,24 +144,9 @@ if not os.path.isfile(outdir+"cls_th.txt") :
     cl_cc=ccl.angular_cl(cosmo,clt_cmbl,clt_cmbl,larr,l_limber=-1)*wil**2
     np.savetxt(outdir+"cls_th.txt",np.transpose([larr,cl_dc,cl_qc,cl_dd,cl_qq,cl_cc]))
 larr,cl_dc,cl_qc,cl_dd,cl_qq,cl_cc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
-#nl_qq=np.ones_like(cl_qq)/ndens_qso
-#nl_dd=np.ones_like(cl_dd)/ndens_dla
-#if plot_stuff :
-#    plt.figure()
-#    plt.plot(larr,cl_dd,'m-')
-#    plt.plot(larr,nl_dd,'m--')
-#    plt.plot(larr,cl_qq,'c-')
-#    plt.plot(larr,nl_qq,'c--')
-#    plt.plot(larr,cl_qq+nl_qq,'c-.')
-#    plt.plot(larr,cl_cc,'y-')
-#    plt.plot(larr,cl_dc,'b-')
-#    plt.plot(larr,cl_qc,'g-')
-#    plt.plot(larr,cl_qc+cl_dc,'r-')
-#    plt.loglog()
-#    plt.show();
-#cl_dla=cl_dc+cl_qc
 
-print "  w(theta)"
+if verbose :
+    print "   w(theta)"
 if not os.path.isfile(outdir+"wth_th.txt") :
     tharr_th=2.*np.arange(256)/255.
     wth_th_dlo=c2w.compute_wth(larr,cl_dc,tharr_th)
@@ -230,6 +155,7 @@ if not os.path.isfile(outdir+"wth_th.txt") :
 tharr_th,wth_th_dlo,wth_th_qso=np.loadtxt(outdir+"wth_th.txt",unpack=True)
 wth_th_dla=wth_th_dlo+wth_th_qso
 
+'''
 if plot_stuff :
     plt.figure()
     plt.plot(zarr_dlo,nzarr_dlo)
@@ -248,6 +174,7 @@ if plot_stuff :
     plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
     plt.ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle$',fontsize=18)
     plt.legend(loc='upper right',frameon=False,fontsize=16)
+'''
     
 #Binning theory
 dth=tharr[1]-tharr[0]
@@ -260,7 +187,7 @@ wth_pr_qso=np.array([quad(wth_f_qso,th-dth/2,th+dth/2)[0]/(th*dth) for th in tha
 wth_f_dla=interp1d(tharr_th,tharr_th*wth_th_dla,bounds_error=False,fill_value=0)
 wth_pr_dla=np.array([quad(wth_f_dla,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
 
-i_good=np.where(tharr<th_thr)[0]; ndof=len(i_good)
+i_good=np.where(tharr<th_thr)[0]; ndof=len(i_good);
 
 
 #Fitting the 2PCF difference
@@ -270,16 +197,18 @@ dv=wth_dlo[i_good]; tv=wth_pr_dlo[i_good]; cv=(covar_dlo[i_good,:])[:,i_good]; i
 #Analytic Best-fit and errors
 sigma_b=1./np.sqrt(np.dot(tv,np.dot(icv,tv)))
 b_bf=np.dot(tv,np.dot(icv,dv))/np.dot(tv,np.dot(icv,tv))
-print "DLA-QSO"
-print b_bf,sigma_b
 pv=b_bf*tv
 chi2=np.dot(dv-pv,np.dot(icv,dv-pv))
 pte=1-st.chi2.cdf(chi2,ndof-1)
-print chi2,ndof-1,pte
+print " Bias from QSO-DLA difference"
+print "  b_DLA = %.3lf +- %.3lf"%(b_bf,sigma_b)
+print "  chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2,ndof-1,pte)
+print " ------"
 if plot_stuff :
     plt.figure()
     plt.plot(tharr_th,b_bf*wth_th_dlo,'b-',lw=2,label='Best fit')
-    plt.errorbar(tharr[i_good],dv,yerr=np.sqrt(np.diag(covar_dlo)[i_good]),fmt='bo',label='Data')
+    plt.errorbar(tharr[i_good],dv,yerr=np.sqrt(np.diag(covar_dlo)[i_good]),fmt='bo',
+                 label='Data')
     plt.xlim([0,th_thr])
     plt.ylim([-0.005,0.025])
     plt.xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=18)
@@ -291,21 +220,27 @@ dv=np.concatenate((wth_dla[i_good],wth_qso[i_good]));
 tv1=np.concatenate((wth_pr_dlo[i_good],np.zeros(ndof)));
 tv2=np.concatenate((wth_pr_qso[i_good],wth_pr_qso[i_good]))
 tv=np.array([tv1,tv2])
-cv=covar_all
-#cv[:ndof,:ndof]=(covar_dla[i_good,:])[:,i_good];
-#cv[ndof:,ndof:]=(covar_qso[i_good,:])[:,i_good];
+cv=np.zeros([2*ndof,2*ndof])
+cv[:ndof,:ndof]=covar_all[:ndof,:ndof]
+cv[:ndof,ndof:]=covar_all[:ndof,nth:nth+ndof]
+cv[ndof:,:ndof]=covar_all[nth:nth+ndof,:ndof]
+cv[ndof:,ndof:]=covar_all[nth:nth+ndof,nth:nth+ndof]
+#cv=covar_all
 icv=np.linalg.inv(cv)
 
 cov_b=np.linalg.inv(np.dot(tv,np.dot(icv,np.transpose(tv))))
 b_bf=np.dot(cov_b,np.dot(tv,np.dot(icv,np.transpose(dv))))
-
-print "DLA+QSO"
-print b_bf,np.sqrt(np.diag(cov_b))
-print cov_b/np.sqrt(np.diag(cov_b)[None,:]*np.diag(cov_b)[:,None])
+sigma_b=np.sqrt(np.diag(cov_b))
 pv=np.dot(b_bf,tv);
 chi2=np.dot((dv-pv),np.dot(icv,(dv-pv)));
 pte=1-st.chi2.cdf(chi2,2*ndof-2)
-print chi2,2*ndof-2,pte
+
+print " Bias from simultaneous fit to QSOs and DLAs"
+print "  b_DLA = %.3lf +- %.3lf"%(b_bf[0],sigma_b[0])
+print "  b_QSO = %.3lf +- %.3lf"%(b_bf[1],sigma_b[1])
+print "  r = %.3lE"%(cov_b[0,1]/(sigma_b[0]*sigma_b[1]))
+print "  chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2,2*ndof-2,pte)
+print " "
 
 if plot_stuff :
     plt.show()
