@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  11 AUG 2017 10:46
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (TeX Live 2016) (preloaded format=pdflatex 2016.5.22)  26 SEP 2017 20:47
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -302,11 +302,11 @@ Package pdftex.def Info: rdshift_ccl.pdf used on input line 69.
 
 LaTeX Warning: Float too large for page by 30.8005pt on input line 72.
 
-<error_both.pdf, id=6, 433.62pt x 289.08pt>
-File: error_both.pdf Graphic file (type pdf)
- <use error_both.pdf>
-Package pdftex.def Info: error_both.pdf used on input line 75.
-(pdftex.def)             Requested size: 360.0pt x 240.01132pt.
+<error_both_2.pdf, id=6, 578.16pt x 433.62pt>
+File: error_both_2.pdf Graphic file (type pdf)
+ <use error_both_2.pdf>
+Package pdftex.def Info: error_both_2.pdf used on input line 75.
+(pdftex.def)             Requested size: 360.0pt x 269.99951pt.
 
 <error_both_syn.pdf, id=7, 578.16pt x 433.62pt>
 File: error_both_syn.pdf Graphic file (type pdf)
@@ -315,7 +315,7 @@ Package pdftex.def Info: error_both_syn.pdf used on input line 79.
 (pdftex.def)             Requested size: 360.0pt x 269.99951pt.
 
 
-LaTeX Warning: Float too large for page by 14.89972pt on input line 82.
+LaTeX Warning: Float too large for page by 44.88791pt on input line 82.
 
 <covariance.pdf, id=8, 311.6162pt x 253.2549pt>
 File: covariance.pdf Graphic file (type pdf)
@@ -389,9 +389,55 @@ Overfull \hbox (88.78418pt too wide) in paragraph at lines 147--157
  [][] 
  []
 
+
+Overfull \hbox (22.68027pt too wide) in paragraph at lines 165--165
+[]$\OML/cmm/m/it/10 b[]$| 
+ []
+
+
+Overfull \hbox (69.30418pt too wide) in paragraph at lines 164--173
+ [][] 
+ []
+
+
+Overfull \hbox (22.68027pt too wide) in paragraph at lines 176--176
+[]$\OML/cmm/m/it/10 b[]$| 
+ []
+
+
+Overfull \hbox (69.30418pt too wide) in paragraph at lines 175--184
+ [][] 
+ []
+
+
+Overfull \hbox (22.68027pt too wide) in paragraph at lines 187--187
+[]$\OML/cmm/m/it/10 b[]$| 
+ []
+
+
+Overfull \hbox (69.30418pt too wide) in paragraph at lines 186--194
+ [][] 
+ []
+
+
+Underfull \hbox (badness 1286) in paragraph at lines 200--200
+\OT1/cmr/m/sc/10 Table 10.\OT1/cmr/m/n/10 Bias with dif-fer-ent apodiza-tion an
+-gles (with C1
+ []
+
+
+Overfull \hbox (22.68027pt too wide) in paragraph at lines 202--202
+[]$\OML/cmm/m/it/10 b[]$| 
+ []
+
+
+Overfull \hbox (23.30199pt too wide) in paragraph at lines 201--210
+ [][] 
+ []
+
 [1{/usr/local/texlive/2016/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
 [2 <./weighted.pdf> <./testfig.png>] [3 <./redshift.png> <./rdshift_ccl.pdf>]
-[4 <./error_both.pdf> <./error_both_syn.pdf
+[4 <./error_both_2.pdf> <./error_both_syn.pdf
 
 pdfTeX warning: /Library/TeX/texbin/pdflatex (file ./error_both_syn.pdf): PDF i
 nclusion: multiple pdfs with page group included in a single page
@@ -403,27 +449,30 @@ on: multiple pdfs with page group included in a single page
 
 pdfTeX warning: /Library/TeX/texbin/pdflatex (file ./dla_mask.pdf): PDF inclusi
 on: multiple pdfs with page group included in a single page
->] [9 <./cps_predictions_50.pdf>] (./jcolosimo.aux) ) 
+>] [9 <./cps_predictions_50.pdf>] [10] [11] (./jcolosimo.aux)
+
+LaTeX Warning: Label(s) may have changed. Rerun to get cross-references right.
+
+ ) 
 Here is how much of TeX's memory you used:
  2754 strings out of 493014
- 36241 string characters out of 6133351
- 133754 words of memory out of 5000000
+ 36251 string characters out of 6133351
+ 149755 words of memory out of 5000000
  6100 multiletter control sequences out of 15000+600000
  8740 words of font info for 35 fonts, out of 8000000 for 9000
  1302 hyphenation exceptions out of 8191
- 38i,11n,28p,645b,206s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/local/texlive/2016/t
-exmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb></usr/local/texlive/2016/t
-exmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2016/te
-xmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></usr/local/texlive/2016/texm
-f-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/local/texlive/2016/texmf-
-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/texlive/2016/texmf-dis
-t/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive/2016/texmf-dist
-/fonts/type1/public/amsfonts/cm/cmsy7.pfb>
-Output written on jcolosimo.pdf (9 pages, 296309 bytes).
+ 38i,11n,28p,645b,253s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pf
+b></usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
+></usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb><
+/usr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></u
+sr/local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/
+local/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/l
+ocal/texlive/2016/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb>
+Output written on jcolosimo.pdf (11 pages, 300567 bytes).
 PDF statistics:
- 403 PDF objects out of 1000 (max. 8388607)
- 127 compressed objects within 2 object streams
+ 411 PDF objects out of 1000 (max. 8388607)
+ 131 compressed objects within 2 object streams
  0 named destinations out of 1000 (max. 500000)
  61 words of extra memory for PDF output out of 10000 (max. 10000000)
 
