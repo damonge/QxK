@@ -19,24 +19,28 @@ rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 rc('text', usetex=True)
 
 
-if len(sys.argv)!=7 :
-    print "Usage : analysis_wth.py nbins nside_cmbl use_wiener[0,1] nsims randomize_points[0,1] plot_stuff[0,1]"
+if len(sys.argv)!=9 :
+    print "Usage : analysis_wth.py thmax nbins nside_cmbl use_wiener[0,1] nsims randomize_points[0,1] plot_stuff[0,1] is_hisn"
     exit(1)
 
 verbose=False
 #Maximum scale (deg) in the computation of the 2PCF
-thmax=1.
+thmax=float(sys.argv[1])
 #Number of bins in theta
-nth=int(sys.argv[1])
+nth=int(sys.argv[2])
 #Resolution of the CMB lensing map
-nside_cmbl=int(sys.argv[2])
-do_wiener=int(sys.argv[3])
-nsims=int(sys.argv[4])
-do_randomize_points=int(sys.argv[5])
-do_plot_stuff=int(sys.argv[6])
+nside_cmbl=int(sys.argv[3])
+do_wiener=int(sys.argv[4])
+nsims=int(sys.argv[5])
+do_randomize_points=int(sys.argv[6])
+do_plot_stuff=int(sys.argv[7])
+is_hisn=int(sys.argv[8])
 #Maximum angle to use in the fit
-th_thr=1.0
+th_thr=thmax
 
+do_hisn=False
+if is_hisn>0 :
+    do_hisn=True
 randomize_points=False
 if do_randomize_points>0 :
     randomize_points=True
@@ -48,11 +52,13 @@ if do_plot_stuff>0 :
     plot_stuff=True
 
 #Create output directory
-outdir="outputs_ns%d_nb%d"%(nside_cmbl,nth)
+outdir="outputs_thm%.1lf_ns%d_nb%d"%(thmax,nside_cmbl,nth)
 if use_wiener :
     outdir+="_wiener"
 if randomize_points :
     outdir+="_randp"
+if do_hisn :
+    outdir+="_hisn"
 outdir+="/"
 
 fname_alldata=outdir+"wth_qxk_all"
@@ -65,6 +71,7 @@ d=np.load(fname_alldata+'.npz')
 tharr=np.mean(d['randoms'][:,0,0,:],axis=0)
 wth_dla=d['wth_dla']
 wth_qso=d['wth_qso']
+wth_qsu=d['wth_qsu']
 wth_dlo=wth_dla-wth_qso
 
 if verbose :
@@ -133,6 +140,14 @@ bzarr_dlo=cmm.bias_dla(zarr_dlo)
 nz,bins=np.histogram(data_dla['zqso'],range=[0,7],bins=50)
 zarr_qso,nzarr_qso=get_nz_oversample(bn,nz,256)
 bzarr_qso=cmm.bias_qso(zarr_qso)
+nz,bins=np.histogram(data_qso['Z_PIPE'][np.where(data_qso['UNIHI'])[0]],range=[0,7],bins=50)
+zarr_qsu,nzarr_qsu=get_nz_oversample(bn,nz,256)
+bzarr_qsu=cmm.bias_qso(zarr_qsu)
+
+plt.figure()
+plt.plot(zarr_dlo,nzarr_dlo)
+plt.plot(zarr_qso,nzarr_qso)
+plt.plot(zarr_qsu,nzarr_qsu)
 
 if verbose :
     print "   Cls"
@@ -151,6 +166,7 @@ if not os.path.isfile(outdir+"cls_th.txt") :
     cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
     clt_dlo =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo,nzarr_dlo),(zarr_dlo,bzarr_dlo))
     clt_qso =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso,nzarr_qso),(zarr_qso,bzarr_qso))
+    clt_qsu =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qsu,nzarr_qsu),(zarr_qsu,bzarr_qsu))
     clt_cmbl=ccl.ClTracerCMBLensing(cosmo)
     larr     =np.concatenate((1.*np.arange(500),500+10*np.arange(950)))
     if use_wiener :
@@ -161,18 +177,21 @@ if not os.path.isfile(outdir+"cls_th.txt") :
     cl_dc=ccl.angular_cl(cosmo,clt_dlo ,clt_cmbl,larr,l_limber=-1)*wil
     cl_qq=ccl.angular_cl(cosmo,clt_qso ,clt_qso ,larr,l_limber=-1)
     cl_qc=ccl.angular_cl(cosmo,clt_qso ,clt_cmbl,larr,l_limber=-1)*wil
+    cl_uu=ccl.angular_cl(cosmo,clt_qsu ,clt_qsu ,larr,l_limber=-1)
+    cl_uc=ccl.angular_cl(cosmo,clt_qsu ,clt_cmbl,larr,l_limber=-1)*wil
     cl_cc=ccl.angular_cl(cosmo,clt_cmbl,clt_cmbl,larr,l_limber=-1)*wil**2
-    np.savetxt(outdir+"cls_th.txt",np.transpose([larr,cl_dc,cl_qc,cl_dd,cl_qq,cl_cc]))
-larr,cl_dc,cl_qc,cl_dd,cl_qq,cl_cc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
+    np.savetxt(outdir+"cls_th.txt",np.transpose([larr,cl_dc,cl_qc,cl_uc,cl_dd,cl_qq,cl_uu,cl_cc]))
+larr,cl_dc,cl_qc,cl_uc,cl_dd,cl_qq,cl_uu,cl_cc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
 
 if verbose :
     print "   w(theta)"
 if not os.path.isfile(outdir+"wth_th.txt") :
-    tharr_th=2.*np.arange(256)/255.
+    tharr_th=thmax*np.arange(256)/255.
     wth_th_dlo=c2w.compute_wth(larr,cl_dc,tharr_th)
     wth_th_qso =c2w.compute_wth(larr,cl_qc ,tharr_th)
-    np.savetxt(outdir+"wth_th.txt",np.transpose([tharr_th,wth_th_dlo,wth_th_qso]))
-tharr_th,wth_th_dlo,wth_th_qso=np.loadtxt(outdir+"wth_th.txt",unpack=True)
+    wth_th_qsu =c2w.compute_wth(larr,cl_uc ,tharr_th)
+    np.savetxt(outdir+"wth_th.txt",np.transpose([tharr_th,wth_th_dlo,wth_th_qso,wth_th_qsu]))
+tharr_th,wth_th_dlo,wth_th_qso,wth_th_qsu=np.loadtxt(outdir+"wth_th.txt",unpack=True)
 wth_th_dla=wth_th_dlo+wth_th_qso
 
 '''
@@ -204,6 +223,9 @@ wth_pr_dlo=np.array([quad(wth_f_dlo,th-dth/2,th+dth/2)[0]/(th*dth) for th in tha
 wth_f_qso=interp1d(tharr_th,tharr_th*wth_th_qso,bounds_error=False,fill_value=0)
 wth_pr_qso=np.array([quad(wth_f_qso,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
 
+wth_f_qsu=interp1d(tharr_th,tharr_th*wth_th_qsu,bounds_error=False,fill_value=0)
+wth_pr_qsu=np.array([quad(wth_f_qsu,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
+
 wth_f_dla=interp1d(tharr_th,tharr_th*wth_th_dla,bounds_error=False,fill_value=0)
 wth_pr_dla=np.array([quad(wth_f_dla,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
 
@@ -230,6 +252,25 @@ if plot_stuff :
     ax.errorbar(tharr,1E3*wth_dlo,yerr=1E3*np.sqrt(np.diag(covar_dlo)),fmt='ko',
                 label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
     ax.plot(tharr_th,b_bf*1E3*wth_th_dlo,'k-',lw=2,label='${\\rm best\\,\\,fit}$')
+
+#Fitting the QSU 2PCF
+#Data vectors and covariances
+dv=wth_qsu[i_good]; tv=wth_pr_qsu[i_good]; cv=(covar_qsu[i_good,:])[:,i_good]; icv=np.linalg.inv(cv)
+#chi^2
+#Analytic Best-fit and errors
+sigma_b=1./np.sqrt(np.dot(tv,np.dot(icv,tv)))
+b_bf=np.dot(tv,np.dot(icv,dv))/np.dot(tv,np.dot(icv,tv))
+pv=b_bf*tv
+chi2=np.dot(dv-pv,np.dot(icv,dv-pv))
+pte=1-st.chi2.cdf(chi2,ndof-1)
+print " QSU bias"
+print "  b_QSU = %.3lf +- %.3lf"%(b_bf,sigma_b)
+print "  chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2,ndof-1,pte)
+print " ------"
+if plot_stuff :
+    ax.errorbar(tharr,1E3*wth_qsu,yerr=1E3*np.sqrt(np.diag(covar_qsu)),fmt='ro',
+                label='$\\kappa\\times{\\rm QSU}$')
+    ax.plot(tharr_th,b_bf*1E3*wth_th_qsu,'r-',lw=2,label='${\\rm best\\,\\,fit}$')
     ax.set_xlim([0,th_thr])
     ax.set_ylim([-0.1,0.35])
     ax.set_xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=14)
@@ -276,7 +317,7 @@ if plot_stuff :
     ax.errorbar(tharr,1E3*wth_qso,yerr=1E3*np.sqrt(np.diag(covar_all[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
     ax.plot([-1,-1],[-1,-1],'k-',lw=2,label='${\\rm best\\,\\,fit}$')
     ax.set_xlim([0,th_thr])
-    ax.set_ylim([-0.1,0.5])
+    ax.set_ylim([-0.15,0.5])
     ax.set_xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=14)
     ax.set_ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle\\times10^3$',fontsize=14)
     for tick in ax.xaxis.get_major_ticks():
