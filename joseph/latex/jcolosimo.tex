@@ -72,7 +72,7 @@ $\ell_{max}$ & \multicolumn{1}{p{0cm}}{$b_{QSO}$} & $b_{DLA}$ & \multicolumn{1}{
 \end{figure}
 
 \begin{figure}
-  \includegraphics[width=\linewidth]{error_both.pdf}
+  \includegraphics[width=\linewidth]{error_both_2.pdf}
   \caption{The error for QSOs, DLAs, and the covariance computed analytically as well as computed using the Planck simulations.}
   \label{fig:error}
 
@@ -153,6 +153,59 @@ $\ell_{max}$ & \multicolumn{1}{p{0cm}}{$b_{QSO}$} & $b_{DLA}$ & \multicolumn{1}{
 1500  &  3.04  $\pm$  0.49  &  2.27  $\pm$  1.22  &  64.25  &  38  &  1.0 \\
 1800  &  3.1  $\pm$  0.49  &  2.34  $\pm$  1.22  &  72.38  &  46  &  0.99 \\
 2100  &  3.11  $\pm$  0.49  &  2.4  $\pm$  1.22  &  77.6  &  54  &  0.98 \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+\begin{center}
+\begin{table}[htbp]
+
+\caption{Bias with minimum $\chi^2$  for different $\ell_{min}$ using 25 $\ell$'s per bin.}
+\begin{tabular}{p{0.1\textwidth}p{0.1\textwidth}p{0.18\textwidth}p{0.18\textwidth}p{0.1\textwidth}p{0.1\textwidth}p{0.18\textwidth}} \\ \toprule
+$\ell_{min}$ & $\ell_{max}$ & \multicolumn{1}{p{0cm}}{$b_{QSO}$} & $b_{DLA}$ & \multicolumn{1}{p{2cm}}{$\chi^2$} & d.o.f  & Probability\\ \midrule
+100  &  1500  &  2.8  $\pm$  0.46  &  2.32  $\pm$  1.19  &  101.81  &  112  &  0.26 \\
+300  &  1500  &  2.61  $\pm$  0.63  &  3.95  $\pm$  2.04  &  95.2  &  96  &  0.5 \\
+500  &  1500  &  2.81  $\pm$  0.99  &  2.83  $\pm$  3.16  &  82.95  &  80  &  0.61 \\
+700  &  1500  &  3.64  $\pm$  1.54  &  -4.83  $\pm$  4.88  &  66.26  &  64  &  0.6 \\
+ \bottomrule
+\end{tabular}
+\vspace{2cm}
+
+\caption{Bias with minimum $\chi^2$  for different $\ell_{min}$ using 50 $\ell$'s per bin.}
+\begin{tabular}{p{0.1\textwidth}p{0.1\textwidth}p{0.18\textwidth}p{0.18\textwidth}p{0.1\textwidth}p{0.1\textwidth}p{0.18\textwidth}} \\ \toprule
+$\ell_{min}$ & $\ell_{max}$ & \multicolumn{1}{p{0cm}}{$b_{QSO}$} & $b_{DLA}$ & \multicolumn{1}{p{2cm}}{$\chi^2$} & d.o.f  & Probability\\ \midrule
+100  &  1500  &  2.79  $\pm$  0.46  &  2.3  $\pm$  1.15  &  55.01  &  56  &  0.49 \\
+300  &  1500  &  2.77  $\pm$  0.58  &  3.35  $\pm$  1.88  &  51.34  &  48  &  0.66 \\
+500  &  1500  &  2.53  $\pm$  0.93  &  2.79  $\pm$  2.98  &  46.86  &  40  &  0.79 \\
+700  &  1500  &  2.86  $\pm$  1.52  &  -2.3  $\pm$  4.45  &  38.3  &  32  &  0.79 \\
+ \bottomrule
+\end{tabular}
+\vspace{2cm}
+
+\caption{Bias with minimum $\chi^2$  for different $\ell_{min}$ using 75 $\ell$'s per bin.}
+\begin{tabular}{p{0.1\textwidth}p{0.1\textwidth}p{0.18\textwidth}p{0.18\textwidth}p{0.1\textwidth}p{0.1\textwidth}p{0.18\textwidth}} \\ \toprule
+$\ell_{min}$ & $\ell_{max}$ & \multicolumn{1}{p{0cm}}{$b_{QSO}$} & $b_{DLA}$ & \multicolumn{1}{p{2cm}}{$\chi^2$} & d.o.f  & Probability\\ \midrule
+100  &  1500  &  2.89  $\pm$  0.46  &  2.44  $\pm$  1.22  &  43.77  &  36  &  0.83 \\
+300  &  1500  &  2.77  $\pm$  0.53  &  2.93  $\pm$  1.7  &  42.73  &  32  &  0.9 \\
+500  &  1500  &  2.4  $\pm$  0.9  &  3.42  $\pm$  3.02  &  35.4  &  26  &  0.9 \\
+700  &  1500  &  3.08  $\pm$  1.53  &  -2.73  $\pm$  4.66  &  29.91  &  20  &  0.93 \\
+ \bottomrule
+\end{tabular}
+
+\end{table}
+\end{center}
+
+\begin{table}
+\vspace{5cm}
+\caption{Bias with different apodization angles (with C1 apodization). No minimum ell and $ell_{max}=1500$.}
+\begin{tabular}{p{0.1\textwidth}p{0.18\textwidth}p{0.18\textwidth}p{0.1\textwidth}p{0.1\textwidth}p{0.18\textwidth}} \\ \toprule
+ $\theta_{apo}$ & \multicolumn{1}{p{0cm}}{$b_{QSO}$} & $b_{DLA}$ & \multicolumn{1}{p{2cm}}{$\chi^2$} & d.o.f  & Probability\\ \midrule
+0.1  &  2.58  $\pm$  0.45  &  2.66  $\pm$  1.11  &  59.57  &  58  &  0.58 \\
+0.2  &  2.48  $\pm$  0.45  &  2.65  $\pm$  1.1  &  61.25  &  58  &  0.64 \\
+0.5  &  2.67  $\pm$  0.46  &  2.48  $\pm$  1.12  &  64.04  &  58  &  0.73 \\
+1.0  &  2.75  $\pm$  0.47  &  2.07  $\pm$  1.24  &  58.2  &  58  &  0.53 \\
+2.0  &  2.52  $\pm$  0.56  &  2.23  $\pm$  1.55  &  48.57  &  58  &  0.19 \\
+ \bottomrule
 \end{tabular}
 \end{table}
 
