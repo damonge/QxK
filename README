@@ -1,12 +1,9 @@
-1. Create a directory "data". Place the DLA catalog (DLA_DR12_v1.dat) there.
-
-2. Install the python module that computes the theoretical 2PCF (cl2wth.c).
+1. Install the python module that computes the theoretical 2PCF (cl2wth.c).
    To do that run 'python setup.py install'
 
-3. Compile the code that computes the 2PCF in the data.
+2. Compile the code that computes the 2PCF in the data.
    Typing 'make' should do the trick. The code requires cfitsio and HEALPix.
 
-4. Running './pipeline.sh' go through all the steps in the pipeline,
+3. Running './pipeline.sh' will go through all the steps in the pipeline,
    including downloading the data, computing all correlation functions,
-   theory prediction and doing the fit.
-
+   power spectra, theory prediction and doing the fit.
