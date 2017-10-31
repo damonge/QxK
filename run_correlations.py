@@ -76,7 +76,7 @@ wth_dlo_g16=wth_dla_g16-wth_qso_g16
 print " Computing the QSO-UNIFORM 2PCF"
 th_qsu,wth_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,
                                                  thmax,nth,fname_out=outdir+"corr_c_qsu.txt",
-                                                 cut_name='UNIHI',weight_name='NO_WEIGHT')
+                                                 cut_name='UNIHI',weight_name='W_DUM')
 
 def get_random_corr(isim) :
     cleanup=False

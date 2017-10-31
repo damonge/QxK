@@ -46,7 +46,6 @@ data_dla_g16=(fits.open(cmm.fname_dla_g16))[1].data
 data_qso=(fits.open(cmm.fname_qso))[1].data
 data_qsu=(fits.open(cmm.fname_qso))[1].data
 data_qsu=data_qsu[np.where(data_qso['UNIHI'])[0]];
-data_qsu['W_N12'][:]=1.
 
 print " Reading QSO mask"
 #msk_qso=hp.ud_grade(hp.read_map(cmm.fname_mask_cmass,verbose=False),nside_out=nside)
@@ -66,7 +65,7 @@ mpn_dla_g16 =np.bincount(hp.ang2pix(nside,np.pi*(90-data_dla_g16['B'])/180,np.pi
 mpn_qso_g16 =np.bincount(hp.ang2pix(nside,np.pi*(90-data_qso['B'])/180,np.pi*data_qso['L']/180),
                          minlength=hp.nside2npix(nside),weights=data_qso['W_G16'])+0.
 mpn_qsu     =np.bincount(hp.ang2pix(nside,np.pi*(90-data_qsu['B'])/180,np.pi*data_qsu['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_qsu['W_N12'])+0.
+                         minlength=hp.nside2npix(nside),weights=data_qsu['W_DUM'])+0.
 mpd_dla_n12 =msk_qso*(msk_qso*mpn_dla_n12*np.sum(msk_qso)/np.sum(mpn_dla_n12*msk_qso)-1.)
 mpd_qso_n12 =msk_qso*(msk_qso*mpn_qso_n12*np.sum(msk_qso)/np.sum(mpn_qso_n12*msk_qso)-1.)
 mpd_dla_n12b=msk_qso*(msk_qso*mpn_dla_n12b*np.sum(msk_qso)/np.sum(mpn_dla_n12b*msk_qso)-1.)

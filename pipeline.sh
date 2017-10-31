@@ -36,9 +36,7 @@ cd ..
 echo "Reformatting data"
 python reformat.py
 
-#nsims=1000
 nsims=1000
-thmax=3.0
 echo "Computing 2-point functions"
 for nside in 2048
 do
@@ -49,10 +47,10 @@ do
 	do
 	    prefix_dir=outputs_thm${thm}_ns${nside}_nb${nth}
 	    if [ ! -f ${prefix_dir}/wth_qxk_all.npz ] ; then
-		echo addqueue -q cmb -s -n 1x12 -m 1 /usr/local/shared/python/2.7.6-gcc/bin/python run_correlations.py ${thm} ${nth} ${nside} 0 ${nsims}
+		addqueue -q cmb -s -n 1x12 -m 1 /usr/local/shared/python/2.7.6-gcc/bin/python run_correlations.py ${thm} ${nth} ${nside} 0 ${nsims}
 	    fi
 	    if [ ! -f ${prefix_dir}_wiener/wth_qxk_all.npz ] ; then
-		echo addqueue -q cmb -s -n 1x12 -m 1 /usr/local/shared/python/2.7.6-gcc/bin/python run_correlations.py ${thm} ${nth} ${nside} 1 ${nsims}
+		addqueue -q cmb -s -n 1x12 -m 1 /usr/local/shared/python/2.7.6-gcc/bin/python run_correlations.py ${thm} ${nth} ${nside} 1 ${nsims}
 	    fi
 	done
     done
@@ -71,62 +69,31 @@ do
 done
 
 echo "Analysing data"
-python analysis_cls.py 40 2048 1000 0.0 1000 1
-
-<<COMMENT
-
-echo "Computing correlation functions"
-nsims=1000
-
-#for nside in 2048 1024
 for nside in 2048
 do
-    for nth in 16 32 48
+    #Correlation functions
+    for thm in 3.0
     do
-#	prefix_dir=outputs_thm10.0_ns${nside}_nb${nth}
-	prefix_dir=outputs_thm3.0_ns${nside}_nb${nth}_hisn
-	if [ ! -f ${prefix_dir}/wth_qxk_all.npz ] ; then
-	    addqueue -q cmb -s -n 1x12 -m 1 /usr/local/shared/python/2.7.6-gcc/bin/python run_correlations.py 3.0 ${nth} ${nside} 0 ${nsims} 0 1
-	fi
-#	if [ ! -f ${prefix_dir}_randp/wth_qxk_all.npz ] ; then
-#	    addqueue -q cmb -s -n 1x12 -m 1 /usr/local/shared/python/2.7.6-gcc/bin/python run_correlations.py 3.0 ${nth} ${nside} 0 ${nsims} 1 1
-#	fi
-	if [ ! -f ${prefix_dir}_wiener/wth_qxk_all.npz ] ; then
-	    addqueue -q cmb -s -n 1x12 -m 1 /usr/local/shared/python/2.7.6-gcc/bin/python run_correlations.py 3.0 ${nth} ${nside} 1 ${nsims} 0 1
-	fi
+	for nth in 16 32 48
+	do
+	    for wie in 0 1
+	    do
+		echo ${nside} ${thm} ${nth} ${wie}
+		python analysis_wth.py ${thm} ${nth} 2048 ${wie} 0
+	    done
+	done
+    done
+    #Power spectra
+    for nlb in 25 40 50 75
+    do
+	for aposcale in 0.0 0.1
+	do
+	    echo ${nside} ${nlb} ${aposcale}
+	    python analysis_cls.py ${nlb} ${nside} ${aposcale} 1000 0
+	done
     done
 done
 
-echo "Analyzing data"
-thmax=1.0
-for nside in 2048 1024
-do
-    for nth in 16 27
-    do
-	echo "Nside = ${nside}, n_theta = ${nth}, thmax=${thmax}"
-	python analysis_wth.py ${thmax} ${nth} ${nside} 0 ${nsims} 0 0
-#	echo "Nside = ${nside}, n_theta = ${nth}, randomized points"
-#	python analysis_wth.py 1.0 ${nth} ${nside} 0 ${nsims} 1 0
-	echo "Nside = ${nside}, n_theta = ${nth}, thmax=${thmax}, Wiener-filtered"
-	python analysis_wth.py ${thmax} ${nth} ${nside} 1 ${nsims} 0 0
-    done
-done
-
-thmax=3.0
-for nside in 2048 1024
-do
-    for nth in 16 48
-    do
-	echo "Nside = ${nside}, n_theta = ${nth}, thmax=${thmax}"
-	python analysis_wth.py ${thmax} ${nth} ${nside} 0 ${nsims} 0 0
-#	echo "Nside = ${nside}, n_theta = ${nth}, randomized points"
-#	python analysis_wth.py 1.0 ${nth} ${nside} 0 ${nsims} 1 0
-	echo "Nside = ${nside}, n_theta = ${nth}, thmax=${thmax}, Wiener-filtered"
-	echo "python analysis_wth.py ${thmax} ${nth} ${nside} 1 ${nsims} 0 0"
-	python analysis_wth.py ${thmax} ${nth} ${nside} 1 ${nsims} 0 0
-    done
-done
-
-#python analysis_wth.py 16 1024 1 100 0 1
-#python analysis_wth.py 16 1024 1 100 0 0
-COMMENT
+echo "Fiducial analysis:"
+python analysis_wth.py 3.0 32 2048 1 0
+python analysis_cls.py 40 2048 0.0 1000 0

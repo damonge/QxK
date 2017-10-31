@@ -130,7 +130,7 @@ if not (os.path.isfile(cmm.fname_qso) and
         plt.plot(zarr,w_g16_t ,'b-',label='QSO weights, G16')
         plt.legend(loc='upper left')
         plt.xlabel('$z$',fontsize=16)
-        plt.ylabel('$N(z)$',fontsize=16)
+        plt.ylabel('$w(z)$',fontsize=16)
         plt.savefig('doc/weights.pdf',bbox_inches='tight')
 
         plt.figure()
@@ -197,6 +197,7 @@ if not (os.path.isfile(cmm.fname_qso) and
                             pf.Column(name='Z_PIPE'   ,format='D' ,array=data_qso['Z_PIPE']),
                             pf.Column(name='B'        ,format='D' ,array=b_qso),
                             pf.Column(name='L'        ,format='D' ,array=l_qso),
+                            pf.Column(name='W_DUM'    ,format='D' ,array=np.ones_like(w_qso_n12)),
                             pf.Column(name='W_N12'    ,format='D' ,array=w_qso_n12),
                             pf.Column(name='W_N12B'   ,format='D' ,array=w_qso_n12b),
                             pf.Column(name='W_G16'    ,format='D' ,array=w_qso_g16)])

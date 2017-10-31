@@ -20,35 +20,35 @@ rc('text', usetex=True)
 
 
 if len(sys.argv)!=6 :
-    print "Usage : analysis_wth.py thmax nbins nside use_wiener[0,1] plot_stuff[0,1]"
+    print "Usage : analysis_cls.py nlb nside aposcale lthr plot_stuff[0,1]"
     exit(1)
 
 verbose=False
-#Maximum scale (deg) in the computation of the 2PCF
-thmax=float(sys.argv[1])
-#Number of bins in theta
-nth=int(sys.argv[2])
+#nlb
+nlb=int(sys.argv[1])
 #Resolution of the CMB lensing map
-nside=int(sys.argv[3])
-#Used Wiener-filtered map?
-do_wiener=int(sys.argv[4])
+nside=int(sys.argv[2])
+#Apodization scale in degrees
+aposcale=float(sys.argv[3])
+#Maximum scale to use in the analysis
+l_thr=float(sys.argv[4])
 #Plot stuff
 do_plot_stuff=int(sys.argv[5])
 
-use_wiener=False
-if do_wiener>0 :
-    use_wiener=True
+
+
+
 plot_stuff=False
 if do_plot_stuff>0 :
     plot_stuff=True
 
 #Create output directory
-outdir="outputs_thm%.1lf_ns%d_nb%d"%(thmax,nside,nth)
-if use_wiener :
-    outdir+="_wiener"
+outdir="outputs_ell2_2002_ns%d_nlb%d_apo%.3lf"%(nside,nlb,aposcale)
 outdir+="/"
 
-fname_alldata=outdir+"wth_qxk_all"
+
+
+fname_alldata=outdir+"cl_qxk_all"
 
 data_dla_n12=(fits.open(cmm.fname_dla_n12))[1].data
 data_dla_n12b=(fits.open(cmm.fname_dla_n12b))[1].data
@@ -57,23 +57,23 @@ data_qso=(fits.open(cmm.fname_qso))[1].data
 
 d=np.load(fname_alldata+'.npz')
 
-tharr=d['th']
-wth_dla_n12=d['wth_dla_n12']; wth_qso_n12=d['wth_qso_n12']; wth_dlo_n12=wth_dla_n12-wth_qso_n12
-wth_dla_n12b=d['wth_dla_n12b']; wth_qso_n12b=d['wth_qso_n12b']; wth_dlo_n12b=wth_dla_n12b-wth_qso_n12b
-wth_dla_g16=d['wth_dla_g16']; wth_qso_g16=d['wth_qso_g16']; wth_dlo_g16=wth_dla_g16-wth_qso_g16
-wth_qsu=d['wth_qsu']
-
+larr=d['ll']
+cell_dla_n12=d['cell_dla_n12']; cell_qso_n12=d['cell_qso_n12']; cell_dlo_n12=cell_dla_n12-cell_qso_n12
+cell_dla_n12b=d['cell_dla_n12b']; cell_qso_n12b=d['cell_qso_n12b']; cell_dlo_n12b=cell_dla_n12b-cell_qso_n12b
+cell_dla_g16=d['cell_dla_g16']; cell_qso_g16=d['cell_qso_g16']; cell_dlo_g16=cell_dla_g16-cell_qso_g16
+cell_qsu=d['cell_qsu']
+nell=len(larr)
 
 if verbose :
     print " Computing covariance matrices"
 mean_all_n12=np.mean(d['randoms_2'][:,0,1,:],axis=0)
 covar_all_n12=np.mean(d['randoms_2'][:,0,1,:,None]*d['randoms_2'][:,0,1,None,:],axis=0)-mean_all_n12[:,None]*mean_all_n12[None,:]
 corr_all_n12=covar_all_n12/np.sqrt(np.diag(covar_all_n12)[None,:]*np.diag(covar_all_n12)[:,None])
-mean_all_n12b=np.mean(d['randoms_2'][:,0,1,:],axis=0)
-covar_all_n12b=np.mean(d['randoms_2'][:,0,1,:,None]*d['randoms_2'][:,0,1,None,:],axis=0)-mean_all_n12b[:,None]*mean_all_n12b[None,:]
+mean_all_n12b=np.mean(d['randoms_2'][:,1,1,:],axis=0)
+covar_all_n12b=np.mean(d['randoms_2'][:,1,1,:,None]*d['randoms_2'][:,1,1,None,:],axis=0)-mean_all_n12b[:,None]*mean_all_n12b[None,:]
 corr_all_n12b=covar_all_n12b/np.sqrt(np.diag(covar_all_n12b)[None,:]*np.diag(covar_all_n12b)[:,None])
-mean_all_g16=np.mean(d['randoms_2'][:,0,1,:],axis=0)
-covar_all_g16=np.mean(d['randoms_2'][:,0,1,:,None]*d['randoms_2'][:,0,1,None,:],axis=0)-mean_all_g16[:,None]*mean_all_g16[None,:]
+mean_all_g16=np.mean(d['randoms_2'][:,2,1,:],axis=0)
+covar_all_g16=np.mean(d['randoms_2'][:,2,1,:,None]*d['randoms_2'][:,2,1,None,:],axis=0)-mean_all_g16[:,None]*mean_all_g16[None,:]
 corr_all_g16=covar_all_g16/np.sqrt(np.diag(covar_all_g16)[None,:]*np.diag(covar_all_g16)[:,None])
 
 mean_dla_n12=np.mean(d['randoms'][:,0,1,:],axis=0)
@@ -114,7 +114,8 @@ if plot_stuff :
     def plot_corr(mat,name,fname='none') :
         plt.figure()
         ax=plt.gca()
-        im=ax.imshow(corr_all,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
+        ax.set_title(name,fontsize=16)
+        im=ax.imshow(mat,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
         cb=plt.colorbar(im,ax=ax)
         ax.text(0.27,0.45,'${\\rm DLA-DLA}$',transform=ax.transAxes)
         ax.text(0.27,0.95,'${\\rm DLA-QSO}$',transform=ax.transAxes)
@@ -128,9 +129,9 @@ if plot_stuff :
             tick.label.set_fontsize(12)
         if fname!='none' :
             plt.savefig(fname,bbox_inches='tight')
-        plot_corr(corr_all_n12,"N12")
-        plot_corr(corr_all_n12b,"N12B")
-        plot_corr(corr_all_g16,"G16")
+    plot_corr(corr_all_n12,"N12")
+    plot_corr(corr_all_n12b,"N12B")
+    plot_corr(corr_all_g16,"G16")
 
 if verbose :
     print " Computing theory prediction"
@@ -167,19 +168,6 @@ if plot_stuff :
     plt.plot(zarr_qso_g16 ,nzarr_qso_g16 ,'b-.')
     plt.plot(zarr_qsu,nzarr_qsu,'g-')
 
-if verbose :
-    print "   Cls"
-ll,nll,cll=np.loadtxt(cmm.fname_kappa_cl,unpack=True)
-cl=np.zeros(int(ll[-1]+1)); cl[int(ll[0]):]=cll
-nl=np.zeros(int(ll[-1]+1)); nl[int(ll[0]):]=nll
-wl=(cl-nl)/np.maximum(cl,np.ones_like(cl)*1E-10)
-lmx_wl=ll[-1]
-def get_wiener(ell) :
-    ret=np.zeros(len(ell))
-    ids_good=np.where(ell<=lmx_wl)[0]
-    ret[ids_good]=wl[(ell.astype(int))[ids_good]]
-    return ret
-
 if not os.path.isfile(outdir+"cls_th.txt") :
     cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
     clt_dlo_n12 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo_n12,nzarr_dlo_n12),(zarr_dlo_n12,bzarr_dlo_n12))
@@ -191,75 +179,61 @@ if not os.path.isfile(outdir+"cls_th.txt") :
     clt_qsu =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qsu,nzarr_qsu),(zarr_qsu,bzarr_qsu))
     clt_cmbl=ccl.ClTracerCMBLensing(cosmo)
     larr_b     =np.concatenate((1.*np.arange(500),500+10*np.arange(950)))
-    if use_wiener :
-        wil=get_wiener(larr_b)
-    else :
-        wil=np.ones(len(larr_b))
-    cl_dc_n12=ccl.angular_cl(cosmo,clt_dlo_n12,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_qc_n12=ccl.angular_cl(cosmo,clt_qso_n12,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_dc_n12b=ccl.angular_cl(cosmo,clt_dlo_n12b,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_qc_n12b=ccl.angular_cl(cosmo,clt_qso_n12b,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_dc_g16=ccl.angular_cl(cosmo,clt_dlo_g16,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_qc_g16=ccl.angular_cl(cosmo,clt_qso_g16,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_uc=ccl.angular_cl(cosmo,clt_qsu,clt_cmbl,larr_b,l_limber=-1)*wil
+    cl_dc_n12=ccl.angular_cl(cosmo,clt_dlo_n12,clt_cmbl,larr_b,l_limber=-1) 
+    cl_qc_n12=ccl.angular_cl(cosmo,clt_qso_n12,clt_cmbl,larr_b,l_limber=-1)
+    cl_dc_n12b=ccl.angular_cl(cosmo,clt_dlo_n12b,clt_cmbl,larr_b,l_limber=-1)
+    cl_qc_n12b=ccl.angular_cl(cosmo,clt_qso_n12b,clt_cmbl,larr_b,l_limber=-1)
+    cl_dc_g16=ccl.angular_cl(cosmo,clt_dlo_g16,clt_cmbl,larr_b,l_limber=-1)
+    cl_qc_g16=ccl.angular_cl(cosmo,clt_qso_g16,clt_cmbl,larr_b,l_limber=-1)
+    cl_uc=ccl.angular_cl(cosmo,clt_qsu,clt_cmbl,larr_b,l_limber=-1)
     np.savetxt(outdir+"cls_th.txt",np.transpose([larr_b,
                                                  cl_dc_n12,cl_qc_n12,
                                                  cl_dc_n12b,cl_qc_n12b,
                                                  cl_dc_g16,cl_qc_g16,
                                                  cl_uc]))
-larr,cl_dc_n12,cl_qc_n12,cl_dc_n12b,cl_qc_n12b,cl_dc_g16,cl_qc_g16,cl_uc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
+larr_th,cl_dc_n12,cl_qc_n12,cl_dc_n12b,cl_qc_n12b,cl_dc_g16,cl_qc_g16,cl_uc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
 
-if verbose :
-    print "   w(theta)"
-if not os.path.isfile(outdir+"wth_th.txt") :
-    tharr_th=thmax*np.arange(256)/255.
-    wth_th_dlo_n12=c2w.compute_wth(larr,cl_dc_n12,tharr_th)
-    wth_th_qso_n12=c2w.compute_wth(larr,cl_qc_n12,tharr_th)
-    wth_th_dlo_n12b=c2w.compute_wth(larr,cl_dc_n12b,tharr_th)
-    wth_th_qso_n12b=c2w.compute_wth(larr,cl_qc_n12b,tharr_th)
-    wth_th_dlo_g16=c2w.compute_wth(larr,cl_dc_g16,tharr_th)
-    wth_th_qso_g16=c2w.compute_wth(larr,cl_qc_g16,tharr_th)
-    wth_th_qsu=c2w.compute_wth(larr,cl_uc,tharr_th)
-    np.savetxt(outdir+"wth_th.txt",np.transpose([tharr_th,
-                                                 wth_th_dlo_n12,wth_th_qso_n12,
-                                                 wth_th_dlo_n12b,wth_th_qso_n12b,
-                                                 wth_th_dlo_g16,wth_th_qso_g16,
-                                                 wth_th_qsu]))
-tharr_th,wth_th_dlo_n12,wth_th_qso_n12,wth_th_dlo_n12b,wth_th_qso_n12b,wth_th_dlo_g16,wth_th_qso_g16,wth_th_qsu=np.loadtxt(outdir+"wth_th.txt",unpack=True)
-    
 #Binning theory
-dth=tharr[1]-tharr[0]
-wth_f_dlo_n12=interp1d(tharr_th,tharr_th*wth_th_dlo_n12,bounds_error=False,fill_value=0)
-wth_pr_dlo_n12=np.array([quad(wth_f_dlo_n12,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qso_n12=interp1d(tharr_th,tharr_th*wth_th_qso_n12,bounds_error=False,fill_value=0)
-wth_pr_qso_n12=np.array([quad(wth_f_qso_n12,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_dlo_n12b=interp1d(tharr_th,tharr_th*wth_th_dlo_n12b,bounds_error=False,fill_value=0)
-wth_pr_dlo_n12b=np.array([quad(wth_f_dlo_n12b,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qso_n12b=interp1d(tharr_th,tharr_th*wth_th_qso_n12b,bounds_error=False,fill_value=0)
-wth_pr_qso_n12b=np.array([quad(wth_f_qso_n12b,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_dlo_g16=interp1d(tharr_th,tharr_th*wth_th_dlo_g16,bounds_error=False,fill_value=0)
-wth_pr_dlo_g16=np.array([quad(wth_f_dlo_g16,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qso_g16=interp1d(tharr_th,tharr_th*wth_th_qso_g16,bounds_error=False,fill_value=0)
-wth_pr_qso_g16=np.array([quad(wth_f_qso_g16,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qsu=interp1d(tharr_th,tharr_th*wth_th_qsu,bounds_error=False,fill_value=0)
-wth_pr_qsu=np.array([quad(wth_f_qsu,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
+cl_th_dlo_n12=cl_dc_n12
+cl_f_dlo_n12=interp1d(larr_th,cl_th_dlo_n12,bounds_error=False,fill_value=0)
+cl_pr_dlo_n12=np.array([quad(cl_f_dlo_n12,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
+cl_th_qso_n12=cl_qc_n12
+cl_f_qso_n12=interp1d(larr_th,cl_th_qso_n12,bounds_error=False,fill_value=0)
+cl_pr_qso_n12=np.array([quad(cl_f_qso_n12,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
+cl_th_dlo_n12b=cl_dc_n12b
+cl_f_dlo_n12b=interp1d(larr_th,cl_th_dlo_n12b,bounds_error=False,fill_value=0)
+cl_pr_dlo_n12b=np.array([quad(cl_f_dlo_n12b,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
+cl_th_qso_n12b=cl_qc_n12b
+cl_f_qso_n12b=interp1d(larr_th,cl_th_qso_n12b,bounds_error=False,fill_value=0)
+cl_pr_qso_n12b=np.array([quad(cl_f_qso_n12b,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
+cl_th_dlo_g16=cl_dc_g16
+cl_f_dlo_g16=interp1d(larr_th,cl_th_dlo_g16,bounds_error=False,fill_value=0)
+cl_pr_dlo_g16=np.array([quad(cl_f_dlo_g16,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
+cl_th_qso_g16=cl_qc_g16
+cl_f_qso_g16=interp1d(larr_th,cl_th_qso_g16,bounds_error=False,fill_value=0)
+cl_pr_qso_g16=np.array([quad(cl_f_qso_g16,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
+cl_th_qsu=cl_uc
+cl_f_qsu=interp1d(larr_th,cl_th_qsu,bounds_error=False,fill_value=0)
+cl_pr_qsu=np.array([quad(cl_f_qsu,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
 
+#Binning theory
 if plot_stuff :
     plt.figure()
-    plt.plot(tharr_th,wth_th_dlo_n12,'r-')
-    plt.plot(tharr_th,wth_th_dlo_n12b,'r--')
-    plt.plot(tharr_th,wth_th_dlo_g16,'r-.')
-    plt.plot(tharr_th,wth_th_qso_n12,'b-')
-    plt.plot(tharr_th,wth_th_qso_n12b,'b--')
-    plt.plot(tharr_th,wth_th_qso_g16,'b-.')
-    plt.plot(tharr_th,wth_th_qsu,'k-')
+    plt.plot(larr_th,cl_dc_n12,'r-')
+    plt.plot(larr_th,cl_dc_n12b,'r--')
+    plt.plot(larr_th,cl_dc_g16,'r-.')
+    plt.plot(larr_th,cl_qc_n12,'b-')
+    plt.plot(larr_th,cl_qc_n12b,'b--')
+    plt.plot(larr_th,cl_qc_g16,'b-.')
+    plt.plot(larr_th,cl_uc,'k-')
+    plt.loglog()
 
-i_good=np.where(tharr<thmax)[0]; ndof=len(i_good);
+i_good=np.where(larr<l_thr)[0]; ndof=len(i_good);
 
 #Fitting the 2PCF difference
-def fit_bias_single(wth_dlo,wth_pr_dlo,covar_dlo) :
+def fit_bias_single(cell_dlo,cl_pr_dlo,covar_dlo) :
     #Data vectors and covariances
-    dv=wth_dlo[i_good]; tv=wth_pr_dlo[i_good]; cv=(covar_dlo[i_good,:])[:,i_good]; icv=np.linalg.inv(cv)
+    dv=cell_dlo[i_good]; tv=cl_pr_dlo[i_good]; cv=(covar_dlo[i_good,:])[:,i_good]; icv=np.linalg.inv(cv)
     #chi^2
     #Analytic Best-fit and errors
     sigma_b=1./np.sqrt(np.dot(tv,np.dot(icv,tv)))
@@ -269,10 +243,10 @@ def fit_bias_single(wth_dlo,wth_pr_dlo,covar_dlo) :
     pte=1-st.chi2.cdf(chi2,ndof-1)
     return b_bf,sigma_b,chi2,pte
 
-b_dlo_n12,sb_dlo_n12,chi2_dlo_n12,pte_dlo_n12=fit_bias_single(wth_dlo_n12,wth_pr_dlo_n12,covar_dlo_n12)
-b_dlo_n12b,sb_dlo_n12b,chi2_dlo_n12b,pte_dlo_n12b=fit_bias_single(wth_dlo_n12b,wth_pr_dlo_n12b,covar_dlo_n12b)
-b_dlo_g16,sb_dlo_g16,chi2_dlo_g16,pte_dlo_g16=fit_bias_single(wth_dlo_g16,wth_pr_dlo_g16,covar_dlo_g16)
-b_qsu,sb_qsu,chi2_qsu,pte_qsu=fit_bias_single(wth_qsu,wth_pr_qsu,covar_qsu)
+b_dlo_n12,sb_dlo_n12,chi2_dlo_n12,pte_dlo_n12=fit_bias_single(cell_dlo_n12,cl_pr_dlo_n12,covar_dlo_n12)
+b_dlo_n12b,sb_dlo_n12b,chi2_dlo_n12b,pte_dlo_n12b=fit_bias_single(cell_dlo_n12b,cl_pr_dlo_n12b,covar_dlo_n12b)
+b_dlo_g16,sb_dlo_g16,chi2_dlo_g16,pte_dlo_g16=fit_bias_single(cell_dlo_g16,cl_pr_dlo_g16,covar_dlo_g16)
+b_qsu,sb_qsu,chi2_qsu,pte_qsu=fit_bias_single(cell_qsu,cl_pr_qsu,covar_qsu)
 print " QSO bias"
 print "   b_QSO = %.3lf +- %.3lf"%(b_qsu,sb_qsu)
 print "   chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2_qsu,ndof-1,pte_qsu)
@@ -290,41 +264,41 @@ print " ------"
 if plot_stuff :
     plt.figure()
     ax=plt.gca()
-    ax.errorbar(tharr,1E3*wth_dlo_n12,yerr=1E3*np.sqrt(np.diag(covar_dlo_n12)),fmt='ro',
+    ax.errorbar(larr,cell_dlo_n12,yerr=np.sqrt(np.diag(covar_dlo_n12)),fmt='ro',
                 label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
-    ax.plot(tharr_th,b_dlo_n12*1E3*wth_th_dlo_n12,'r-',lw=2,label='${\\rm best\\,\\,fit}$')
-#    ax.errorbar(tharr,1E3*wth_dlo_n12b,yerr=1E3*np.sqrt(np.diag(covar_dlo_n12b)),fmt='go',
+    ax.plot(larr_th,b_dlo_n12*cl_th_dlo_n12,'r-',lw=2,label='${\\rm best\\,\\,fit}$')
+#    ax.errorbar(larr,cell_dlo_n12b,yerr=np.sqrt(np.diag(covar_dlo_n12b)),fmt='go',
 #                label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
-#    ax.plot(tharr_th,b_dlo_n12b*1E3*wth_th_dlo_n12b,'g-',lw=2,label='${\\rm best\\,\\,fit}$')
-#    ax.errorbar(tharr,1E3*wth_dlo_g16,yerr=1E3*np.sqrt(np.diag(covar_dlo_g16)),fmt='bo',
+#    ax.plot(larr_th,b_dlo_n12b*cl_th_dlo_n12b,'g-',lw=2,label='${\\rm best\\,\\,fit}$')
+#    ax.errorbar(larr,cell_dlo_g16,yerr=np.sqrt(np.diag(covar_dlo_g16)),fmt='bo',
 #                label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
-#    ax.plot(tharr_th,b_dlo_g16*1E3*wth_th_dlo_g16,'b-',lw=2,label='${\\rm best\\,\\,fit}$')
-    ax.errorbar(tharr,1E3*wth_qsu,yerr=1E3*np.sqrt(np.diag(covar_qsu)),fmt='ko',
-                label='$\\kappa\\times{\\rm QSU}$')
-    ax.plot(tharr_th,b_dlo_n12*1E3*wth_th_qsu,'k-',lw=2,label='${\\rm best\\,\\,fit}$')
-    ax.set_xlim([0,thmax])
-    ax.set_ylim([-0.1,0.35])
-    ax.set_xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=14)
-    ax.set_ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle\\times10^3$',fontsize=14)
+#    ax.plot(larr_th,b_qsu*cl_th_qsu,'b-',lw=2,label='${\\rm best\\,\\,fit}$')
+    ax.errorbar(larr,cell_qsu,yerr=np.sqrt(np.diag(covar_qsu)),fmt='ko',
+                label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
+    ax.plot(larr_th,b_qsu*cl_th_qsu,'k-',lw=2,label='${\\rm best\\,\\,fit}$')
+    ax.set_xlim([0,l_thr])
+#    ax.set_ylim([-0.1,0.35])
+    ax.set_xlabel('$\\ell$',fontsize=14)
+    ax.set_ylabel('$C^{\\kappa\\delta}_\\ell$',fontsize=14)
     for tick in ax.xaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
 #    plt.legend(loc='upper right',frameon=False,fontsize=14)
-#    plt.savefig("doc/wth_x1.pdf",bbox_inches='tight')
+#    plt.savefig("doc/cls_x1.pdf",bbox_inches='tight')
 
 
 #Fitting both 2PCFs with b_DLA and b_QSO
-def fit_bias_both(wth_dla,wth_qso,wth_pr_dlo,wth_pr_qso,covar_all) :
-    dv=np.concatenate((wth_dla[i_good],wth_qso[i_good]));
-    tv1=np.concatenate((wth_pr_dlo[i_good],np.zeros(ndof)));
-    tv2=np.concatenate((wth_pr_qso[i_good],wth_pr_qso[i_good]))
+def fit_bias_both(cell_dla,cell_qso,cl_pr_dlo,cl_pr_qso,covar_all) :
+    dv=np.concatenate((cell_dla[i_good],cell_qso[i_good]));
+    tv1=np.concatenate((cl_pr_dlo[i_good],np.zeros(ndof)));
+    tv2=np.concatenate((cl_pr_qso[i_good],cl_pr_qso[i_good]))
     tv=np.array([tv1,tv2])
     cv=np.zeros([2*ndof,2*ndof])
     cv[:ndof,:ndof]=covar_all[:ndof,:ndof]
-    cv[:ndof,ndof:]=covar_all[:ndof,nth:nth+ndof]
-    cv[ndof:,:ndof]=covar_all[nth:nth+ndof,:ndof]
-    cv[ndof:,ndof:]=covar_all[nth:nth+ndof,nth:nth+ndof]
+    cv[:ndof,ndof:]=covar_all[:ndof,nell:nell+ndof]
+    cv[ndof:,:ndof]=covar_all[nell:nell+ndof,:ndof]
+    cv[ndof:,ndof:]=covar_all[nell:nell+ndof,nell:nell+ndof]
     icv=np.linalg.inv(cv)
 
     cov_b=np.linalg.inv(np.dot(tv,np.dot(icv,np.transpose(tv))))
@@ -335,9 +309,9 @@ def fit_bias_both(wth_dla,wth_qso,wth_pr_dlo,wth_pr_qso,covar_all) :
     pte=1-st.chi2.cdf(chi2,2*ndof-2)
     return b_bf,cov_b,chi2,pte
 
-b_dla_n12,cb_dla_n12,chi2_dla_n12,pte_dla_n12=fit_bias_both(wth_dla_n12,wth_qso_n12,wth_pr_dlo_n12,wth_pr_qso_n12,covar_all_n12)
-b_dla_n12b,cb_dla_n12b,chi2_dla_n12b,pte_dla_n12b=fit_bias_both(wth_dla_n12b,wth_qso_n12b,wth_pr_dlo_n12b,wth_pr_qso_n12b,covar_all_n12b)
-b_dla_g16,cb_dla_g16,chi2_dla_g16,pte_dla_g16=fit_bias_both(wth_dla_g16,wth_qso_g16,wth_pr_dlo_g16,wth_pr_qso_g16,covar_all_g16)
+b_dla_n12,cb_dla_n12,chi2_dla_n12,pte_dla_n12=fit_bias_both(cell_dla_n12,cell_qso_n12,cl_pr_dlo_n12,cl_pr_qso_n12,covar_all_n12)
+b_dla_n12b,cb_dla_n12b,chi2_dla_n12b,pte_dla_n12b=fit_bias_both(cell_dla_n12b,cell_qso_n12b,cl_pr_dlo_n12b,cl_pr_qso_n12b,covar_all_n12b)
+b_dla_g16,cb_dla_g16,chi2_dla_g16,pte_dla_g16=fit_bias_both(cell_dla_g16,cell_qso_g16,cl_pr_dlo_g16,cl_pr_qso_g16,covar_all_g16)
 print " Bias from simultaneous fit to QSOs and DLAs"
 print "  N12"
 print "   b_DLA = %.3lf +- %.3lf"%(b_dla_n12[0],np.sqrt(np.diag(cb_dla_n12))[0])
@@ -358,29 +332,29 @@ print " "
 if plot_stuff :
     plt.figure()
     ax=plt.gca()
-    ax.plot(tharr_th,b_dla_n12[0]*1E3*wth_th_dlo_n12+b_dla_n12[1]*1E3*wth_th_qso_n12,'b-',lw=2)
-    ax.plot(tharr_th,b_dla_n12[1]*1E3*wth_th_qso_n12,'r-',lw=2)
-    ax.errorbar(tharr,1E3*wth_dla_n12,yerr=1E3*np.sqrt(np.diag(covar_all_n12[:nth,:nth])),fmt='bo',label='$\\kappa\\times{\\rm DLA}$')
-    ax.errorbar(tharr,1E3*wth_qso_n12,yerr=1E3*np.sqrt(np.diag(covar_all_n12[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
-#    ax.plot(tharr_th,b_dla_n12b[0]*1E3*wth_th_dlo_n12b+b_dla_n12b[1]*1E3*wth_th_qso_n12b,'b-',lw=2)
-#    ax.plot(tharr_th,b_dla_n12b[1]*1E3*wth_th_qso_n12b,'r-',lw=2)
-#    ax.errorbar(tharr,1E3*wth_dla_n12b,yerr=1E3*np.sqrt(np.diag(covar_all_n12b[:nth,:nth])),fmt='bo',label='$\\kappa\\times{\\rm DLA}$')
-#    ax.errorbar(tharr,1E3*wth_qso_n12b,yerr=1E3*np.sqrt(np.diag(covar_all_n12b[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
-#    ax.plot(tharr_th,b_dla_g16[0]*1E3*wth_th_dlo_g16+b_dla_g16[1]*1E3*wth_th_qso_g16,'b-',lw=2)
-#    ax.plot(tharr_th,b_dla_g16[1]*1E3*wth_th_qso_g16,'r-',lw=2)
-#    ax.errorbar(tharr,1E3*wth_dla_g16,yerr=1E3*np.sqrt(np.diag(covar_all_g16[:nth,:nth])),fmt='bo',label='$\\kappa\\times{\\rm DLA}$')
-#    ax.errorbar(tharr,1E3*wth_qso_g16,yerr=1E3*np.sqrt(np.diag(covar_all_g16[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
-#    ax.plot([-1,-1],[-1,-1],'k-',lw=2,label='${\\rm best\\,\\,fit}$')
-    ax.set_xlim([0,thmax])
-    ax.set_ylim([-0.15,0.5])
-    ax.set_xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=14)
-    ax.set_ylabel('$\\left\\langle\\kappa(\\theta)\\right\\rangle\\times10^3$',fontsize=14)
+    ax.plot(larr_th,b_dla_n12[0]*cl_th_dlo_n12+b_dla_n12[1]*cl_th_qso_n12,'b-',lw=2)
+    ax.plot(larr_th,b_dla_n12[1]*cl_th_qso_n12,'r-',lw=2)
+    ax.errorbar(larr,cell_dla_n12,yerr=np.sqrt(np.diag(covar_all_n12[:nell,:nell])),fmt='bo',label='$\\kappa\\times{\\rm DLA-N12}$')
+    ax.errorbar(larr,cell_qso_n12,yerr=np.sqrt(np.diag(covar_all_n12[nell:,nell:])),fmt='ro',label='$\\kappa\\times{\\rm QSO-N12}$')
+    #ax.plot(larr_th,b_dla_n12b[0]*cl_th_dlo_n12b+b_dla_n12b[1]*cl_th_qso_n12b,'g-',lw=2)
+    #ax.plot(larr_th,b_dla_n12b[1]*cl_th_qso_n12b,'y-',lw=2)
+    #ax.errorbar(larr,cell_dla_n12b,yerr=np.sqrt(np.diag(covar_all_n12b[:nell,:nell])),fmt='go',label='$\\kappa\\times{\\rm DLA-N12B}$')
+    #ax.errorbar(larr,cell_qso_n12b,yerr=np.sqrt(np.diag(covar_all_n12b[nell:,nell:])),fmt='yo',label='$\\kappa\\times{\\rm QSO-N12B}$')
+    #ax.plot(larr_th,b_dla_g16[0]*cl_th_dlo_g16+b_dla_g16[1]*cl_th_qso_g16,'m-',lw=2)
+    #ax.plot(larr_th,b_dla_g16[1]*cl_th_qso_g16,'k-',lw=2)
+    #ax.errorbar(larr,cell_dla_g16,yerr=np.sqrt(np.diag(covar_all_g16[:nell,:nell])),fmt='mo',label='$\\kappa\\times{\\rm DLA-G16}$')
+    #ax.errorbar(larr,cell_qso_g16,yerr=np.sqrt(np.diag(covar_all_g16[nell:,nell:])),fmt='ko',label='$\\kappa\\times{\\rm QSO-G16}$')
+    #ax.plot([-1,-1],[-1,-1],'k-',lw=2,label='${\\rm best\\,\\,fit}$')
+    ax.set_xlim([0,600])
+    ax.set_ylim([-4E-7,8E-7])
+    ax.set_xlabel('$\\ell$',fontsize=14)
+    ax.set_ylabel('$C^{\\kappa\\delta}_\\ell$',fontsize=14)
     for tick in ax.xaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
-#    plt.savefig("doc/wth_x2.pdf",bbox_inches='tight')
+#    plt.savefig("doc/cls_x2.pdf",bbox_inches='tight')
 
 if plot_stuff :
     plt.show()
