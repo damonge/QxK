@@ -48,6 +48,8 @@ if use_wiener :
     outdir+="_wiener"
 outdir+="/"
 
+line_out="wth_Ns%d_thm%.1lf_nb%d "%(nside,thmax,nth)
+
 fname_alldata=outdir+"wth_qxk_all"
 
 data_dla_n12=(fits.open(cmm.fname_dla_n12))[1].data
@@ -273,6 +275,10 @@ b_dlo_n12,sb_dlo_n12,chi2_dlo_n12,pte_dlo_n12=fit_bias_single(wth_dlo_n12,wth_pr
 b_dlo_n12b,sb_dlo_n12b,chi2_dlo_n12b,pte_dlo_n12b=fit_bias_single(wth_dlo_n12b,wth_pr_dlo_n12b,covar_dlo_n12b)
 b_dlo_g16,sb_dlo_g16,chi2_dlo_g16,pte_dlo_g16=fit_bias_single(wth_dlo_g16,wth_pr_dlo_g16,covar_dlo_g16)
 b_qsu,sb_qsu,chi2_qsu,pte_qsu=fit_bias_single(wth_qsu,wth_pr_qsu,covar_qsu)
+line_out+="%.3lE %.3lE %.3lE "%(b_qsu,sb_qsu,chi2_qsu)
+line_out+="%.3lE %.3lE %.3lE "%(b_dlo_n12,sb_dlo_n12,chi2_dlo_n12)
+line_out+="%.3lE %.3lE %.3lE "%(b_dlo_n12b,sb_dlo_n12b,chi2_dlo_n12b)
+line_out+="%.3lE %.3lE %.3lE "%(b_dlo_g16,sb_dlo_g16,chi2_dlo_g16)
 print " QSO bias"
 print "   b_QSO = %.3lf +- %.3lf"%(b_qsu,sb_qsu)
 print "   chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2_qsu,ndof-1,pte_qsu)
@@ -338,6 +344,9 @@ def fit_bias_both(wth_dla,wth_qso,wth_pr_dlo,wth_pr_qso,covar_all) :
 b_dla_n12,cb_dla_n12,chi2_dla_n12,pte_dla_n12=fit_bias_both(wth_dla_n12,wth_qso_n12,wth_pr_dlo_n12,wth_pr_qso_n12,covar_all_n12)
 b_dla_n12b,cb_dla_n12b,chi2_dla_n12b,pte_dla_n12b=fit_bias_both(wth_dla_n12b,wth_qso_n12b,wth_pr_dlo_n12b,wth_pr_qso_n12b,covar_all_n12b)
 b_dla_g16,cb_dla_g16,chi2_dla_g16,pte_dla_g16=fit_bias_both(wth_dla_g16,wth_qso_g16,wth_pr_dlo_g16,wth_pr_qso_g16,covar_all_g16)
+line_out+="%.3lE %.3lE %.3lE %.3lE %.3lE %.3lE "%(b_dla_n12[0],b_dla_n12[1],cb_dla_n12[0,0],cb_dla_n12[0,1],cb_dla_n12[1,1],chi2_dla_n12)
+line_out+="%.3lE %.3lE %.3lE %.3lE %.3lE %.3lE "%(b_dla_n12b[0],b_dla_n12b[1],cb_dla_n12b[0,0],cb_dla_n12b[0,1],cb_dla_n12b[1,1],chi2_dla_n12b)
+line_out+="%.3lE %.3lE %.3lE %.3lE %.3lE %.3lE "%(b_dla_g16[0],b_dla_g16[1],cb_dla_g16[0,0],cb_dla_g16[0,1],cb_dla_g16[1,1],chi2_dla_g16)
 print " Bias from simultaneous fit to QSOs and DLAs"
 print "  N12"
 print "   b_DLA = %.3lf +- %.3lf"%(b_dla_n12[0],np.sqrt(np.diag(cb_dla_n12))[0])
@@ -382,5 +391,8 @@ if plot_stuff :
     plt.legend(loc='upper right',frameon=False,fontsize=14)
 #    plt.savefig("doc/wth_x2.pdf",bbox_inches='tight')
 
+line_out+="%.3lE %.3lE"%(1.0,1.0)
 if plot_stuff :
     plt.show()
+with open('data/results.txt','a') as outfile:
+    outfile.write(line_out+"\n")

@@ -43,10 +43,10 @@ if do_plot_stuff>0 :
     plot_stuff=True
 
 #Create output directory
-outdir="outputs_latest/outputs_ell2_2002_ns%d_nlb%d_apo%.3lf"%(nside,nlb,aposcale)
+outdir="outputs_ell2_2002_ns%d_nlb%d_apo%.3lf"%(nside,nlb,aposcale)
 outdir+="/"
 
-line_output+="Cl_Ns%d_Nl%d_apo%.1lf "%(nside,nlb,aposcale)
+line_out="Cl_Ns%d_Nl%d_apo%.1lf "%(nside,nlb,aposcale)
 
 fname_alldata=outdir+"cl_qxk_all"
 
@@ -409,8 +409,8 @@ print "N12-N12B"
 pte_n12_n12b=fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_n12b,cell_qso_n12b,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_n12b,cl_pr_qso_n12b,covar_n12_n12b)
 print "N12-G16"
 pte_n12_g16=fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_g16,cell_qso_g16,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_g16,cl_pr_qso_g16,covar_n12_g16)
-line_output+="%.3lE %.3lE"%(pte_n12_n12b,pte_n12_g16)
+line_out+="%.3lE %.3lE"%(pte_n12_n12b,pte_n12_g16)
 if plot_stuff :
     plt.show()
 with open('data/results.txt','a') as outfile:
-    outfile.write(line_output)
+    outfile.write(line_out+"\n")
