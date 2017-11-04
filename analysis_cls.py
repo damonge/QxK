@@ -46,7 +46,7 @@ if do_plot_stuff>0 :
 outdir="outputs_latest/outputs_ell2_2002_ns%d_nlb%d_apo%.3lf"%(nside,nlb,aposcale)
 outdir+="/"
 
-
+line_output+="Cl_Ns%d_Nl%d_apo%.1lf "%(nside,nlb,aposcale)
 
 fname_alldata=outdir+"cl_qxk_all"
 
@@ -141,7 +141,7 @@ covar_dlo_g16=np.mean(d['randoms'][:,9,1,:,None]*d['randoms'][:,9,1,None,:],axis
 corr_dlo_g16=covar_dlo_g16/np.sqrt(np.diag(covar_dlo_g16)[None,:]*np.diag(covar_dlo_g16)[:,None])
 
 if plot_stuff :
-    def plot_corr(mat,name,fname='none') :
+    def plot_corr(mat,name) :
         plt.figure()
         ax=plt.gca()
         ax.set_title(name,fontsize=16)
@@ -157,8 +157,6 @@ if plot_stuff :
             tick.label.set_fontsize(12)
         for tick in ax.yaxis.get_major_ticks():
             tick.label.set_fontsize(12)
-        if fname!='none' :
-            plt.savefig(fname,bbox_inches='tight')
     plot_corr(corr_all_n12,"N12")
     plot_corr(corr_all_n12b,"N12B")
     plot_corr(corr_all_g16,"G16")
@@ -277,6 +275,10 @@ b_dlo_n12,sb_dlo_n12,chi2_dlo_n12,pte_dlo_n12=fit_bias_single(cell_dlo_n12,cl_pr
 b_dlo_n12b,sb_dlo_n12b,chi2_dlo_n12b,pte_dlo_n12b=fit_bias_single(cell_dlo_n12b,cl_pr_dlo_n12b,covar_dlo_n12b)
 b_dlo_g16,sb_dlo_g16,chi2_dlo_g16,pte_dlo_g16=fit_bias_single(cell_dlo_g16,cl_pr_dlo_g16,covar_dlo_g16)
 b_qsu,sb_qsu,chi2_qsu,pte_qsu=fit_bias_single(cell_qsu,cl_pr_qsu,covar_qsu)
+line_out+="%.3lE %.3lE %.3lE "%(b_qsu,sb_qsu,chi2_qsu)
+line_out+="%.3lE %.3lE %.3lE "%(b_dlo_n12,sb_dlo_n12,chi2_dlo_n12)
+line_out+="%.3lE %.3lE %.3lE "%(b_dlo_n12b,sb_dlo_n12b,chi2_dlo_n12b)
+line_out+="%.3lE %.3lE %.3lE "%(b_dlo_g16,sb_dlo_g16,chi2_dlo_g16)
 print " QSO bias"
 print "   b_QSO = %.3lf +- %.3lf"%(b_qsu,sb_qsu)
 print "   chi^2 = %.3lE, ndof = %d, PTE = %.3lE"%(chi2_qsu,ndof-1,pte_qsu)
@@ -297,12 +299,6 @@ if plot_stuff :
     ax.errorbar(larr,cell_dlo_n12,yerr=np.sqrt(np.diag(covar_dlo_n12)),fmt='ro',
                 label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
     ax.plot(larr_th,b_dlo_n12*cl_th_dlo_n12,'r-',lw=2,label='${\\rm best\\,\\,fit}$')
-#    ax.errorbar(larr,cell_dlo_n12b,yerr=np.sqrt(np.diag(covar_dlo_n12b)),fmt='go',
-#                label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
-#    ax.plot(larr_th,b_dlo_n12b*cl_th_dlo_n12b,'g-',lw=2,label='${\\rm best\\,\\,fit}$')
-#    ax.errorbar(larr,cell_dlo_g16,yerr=np.sqrt(np.diag(covar_dlo_g16)),fmt='bo',
-#                label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
-#    ax.plot(larr_th,b_qsu*cl_th_qsu,'b-',lw=2,label='${\\rm best\\,\\,fit}$')
     ax.errorbar(larr,cell_qsu,yerr=np.sqrt(np.diag(covar_qsu)),fmt='ko',
                 label='$\\kappa\\times({\\rm DLA}-{\\rm QSO})$')
     ax.plot(larr_th,b_qsu*cl_th_qsu,'k-',lw=2,label='${\\rm best\\,\\,fit}$')
@@ -315,7 +311,6 @@ if plot_stuff :
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
 #    plt.legend(loc='upper right',frameon=False,fontsize=14)
-#    plt.savefig("doc/cls_x1.pdf",bbox_inches='tight')
 
 #Fitting both 2PCFs with b_DLA and b_QSO
 def fit_bias_both(cell_dla,cell_qso,cl_pr_dlo,cl_pr_qso,covar_all) :
@@ -341,6 +336,9 @@ def fit_bias_both(cell_dla,cell_qso,cl_pr_dlo,cl_pr_qso,covar_all) :
 b_dla_n12,cb_dla_n12,chi2_dla_n12,pte_dla_n12=fit_bias_both(cell_dla_n12,cell_qso_n12,cl_pr_dlo_n12,cl_pr_qso_n12,covar_all_n12)
 b_dla_n12b,cb_dla_n12b,chi2_dla_n12b,pte_dla_n12b=fit_bias_both(cell_dla_n12b,cell_qso_n12b,cl_pr_dlo_n12b,cl_pr_qso_n12b,covar_all_n12b)
 b_dla_g16,cb_dla_g16,chi2_dla_g16,pte_dla_g16=fit_bias_both(cell_dla_g16,cell_qso_g16,cl_pr_dlo_g16,cl_pr_qso_g16,covar_all_g16)
+line_out+="%.3lE %.3lE %.3lE %.3lE %.3lE %.3lE "%(b_dla_n12[0],b_dla_n12[1],cb_dla_n12[0,0],cb_dla_n12[0,1],cb_dla_n12[1,1],chi2_dla_n12)
+line_out+="%.3lE %.3lE %.3lE %.3lE %.3lE %.3lE "%(b_dla_n12b[0],b_dla_n12b[1],cb_dla_n12b[0,0],cb_dla_n12b[0,1],cb_dla_n12b[1,1],chi2_dla_n12b)
+line_out+="%.3lE %.3lE %.3lE %.3lE %.3lE %.3lE "%(b_dla_g16[0],b_dla_g16[1],cb_dla_g16[0,0],cb_dla_g16[0,1],cb_dla_g16[1,1],chi2_dla_g16)
 print " Bias from simultaneous fit to QSOs and DLAs"
 print "  N12"
 print "   b_DLA = %.3lf +- %.3lf"%(b_dla_n12[0],np.sqrt(np.diag(cb_dla_n12))[0])
@@ -383,7 +381,6 @@ if plot_stuff :
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
-#    plt.savefig("doc/cls_x2.pdf",bbox_inches='tight')
 
 def fit_bias_4way(cell_dla1,cell_qso1,cell_dla2,cell_qso2,cl_pr_dlo1,cl_pr_qso1,cl_pr_dlo2,cl_pr_qso2,covar_all) :
     dv=np.concatenate((cell_dla1[i_good],cell_qso1[i_good],cell_dla2[i_good],cell_qso2[i_good]))
@@ -407,10 +404,13 @@ def fit_bias_4way(cell_dla1,cell_qso1,cell_dla2,cell_qso2,cl_pr_dlo1,cl_pr_qso1,
     chi2=np.dot((db-mb*u),np.dot(icb,(db-mb*u)))
 
     print b_bf[0],b_bf[1],np.sqrt(cov_b[0,0]),np.sqrt(cov_b[1,1]),cov_b[0,1]/np.sqrt(cov_b[0,0]*cov_b[1,1]),chi2,1-st.chi2.cdf(chi2,1)
+    return 1-st.chi2.cdf(chi2,1)
 print "N12-N12B"
-fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_n12b,cell_qso_n12b,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_n12b,cl_pr_qso_n12b,covar_n12_n12b)
+pte_n12_n12b=fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_n12b,cell_qso_n12b,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_n12b,cl_pr_qso_n12b,covar_n12_n12b)
 print "N12-G16"
-fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_g16,cell_qso_g16,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_g16,cl_pr_qso_g16,covar_n12_g16)
-
+pte_n12_g16=fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_g16,cell_qso_g16,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_g16,cl_pr_qso_g16,covar_n12_g16)
+line_output+="%.3lE %.3lE"%(pte_n12_n12b,pte_n12_g16)
 if plot_stuff :
     plt.show()
+with open('data/results.txt','a') as outfile:
+    outfile.write(line_output)
