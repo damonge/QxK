@@ -43,7 +43,7 @@ if do_plot_stuff>0 :
     plot_stuff=True
 
 #Create output directory
-outdir="outputs_ell2_2002_ns%d_nlb%d_apo%.3lf"%(nside,nlb,aposcale)
+outdir="outputs_latest/outputs_ell2_2002_ns%d_nlb%d_apo%.3lf"%(nside,nlb,aposcale)
 outdir+="/"
 
 
@@ -66,6 +66,7 @@ nell=len(larr)
 
 if verbose :
     print " Computing covariance matrices"
+nsims=len(d['randoms'])
 mean_all_n12=np.mean(d['randoms_2'][:,0,1,:],axis=0)
 covar_all_n12=np.mean(d['randoms_2'][:,0,1,:,None]*d['randoms_2'][:,0,1,None,:],axis=0)-mean_all_n12[:,None]*mean_all_n12[None,:]
 corr_all_n12=covar_all_n12/np.sqrt(np.diag(covar_all_n12)[None,:]*np.diag(covar_all_n12)[:,None])
@@ -75,6 +76,35 @@ corr_all_n12b=covar_all_n12b/np.sqrt(np.diag(covar_all_n12b)[None,:]*np.diag(cov
 mean_all_g16=np.mean(d['randoms_2'][:,2,1,:],axis=0)
 covar_all_g16=np.mean(d['randoms_2'][:,2,1,:,None]*d['randoms_2'][:,2,1,None,:],axis=0)-mean_all_g16[:,None]*mean_all_g16[None,:]
 corr_all_g16=covar_all_g16/np.sqrt(np.diag(covar_all_g16)[None,:]*np.diag(covar_all_g16)[:,None])
+
+mean_n12_n12b=np.zeros(4*nell)
+mean_n12_g16 =np.zeros(4*nell)
+covar_n12_n12b=np.zeros([4*nell,4*nell])
+covar_n12_g16=np.zeros([4*nell,4*nell])
+for i in np.arange(nsims) :
+    print i
+    vec=np.zeros(4*nell)
+    vec2=np.zeros([4*nell,4*nell])
+
+    vec[0*nell:1*nell]=d['randoms'][i,0,1,:];
+    vec[1*nell:2*nell]=d['randoms'][i,3,1,:];
+    vec[2*nell:3*nell]=d['randoms'][i,1,1,:];
+    vec[3*nell:4*nell]=d['randoms'][i,4,1,:];
+    vec2=vec[:,None]*vec[None,:]
+    mean_n12_n12b+=vec
+    covar_n12_n12b+=vec2
+
+    vec[0*nell:1*nell]=d['randoms'][i,0,1,:];
+    vec[1*nell:2*nell]=d['randoms'][i,3,1,:];
+    vec[2*nell:3*nell]=d['randoms'][i,2,1,:];
+    vec[3*nell:4*nell]=d['randoms'][i,5,1,:];
+    vec2=vec[:,None]*vec[None,:]
+    mean_n12_g16+=vec
+    covar_n12_g16+=vec2
+mean_n12_n12b/=nsims
+mean_n12_g16/=nsims
+covar_n12_n12b=covar_n12_n12b/nsims-mean_n12_n12b[:,None]*mean_n12_n12b[None,:]
+covar_n12_g16=covar_n12_g16/nsims-mean_n12_g16[:,None]*mean_n12_g16[None,:]
 
 mean_dla_n12=np.mean(d['randoms'][:,0,1,:],axis=0)
 covar_dla_n12=np.mean(d['randoms'][:,0,1,:,None]*d['randoms'][:,0,1,None,:],axis=0)-mean_dla_n12[:,None]*mean_dla_n12[None,:]
@@ -287,7 +317,6 @@ if plot_stuff :
 #    plt.legend(loc='upper right',frameon=False,fontsize=14)
 #    plt.savefig("doc/cls_x1.pdf",bbox_inches='tight')
 
-
 #Fitting both 2PCFs with b_DLA and b_QSO
 def fit_bias_both(cell_dla,cell_qso,cl_pr_dlo,cl_pr_qso,covar_all) :
     dv=np.concatenate((cell_dla[i_good],cell_qso[i_good]));
@@ -355,6 +384,33 @@ if plot_stuff :
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
 #    plt.savefig("doc/cls_x2.pdf",bbox_inches='tight')
+
+def fit_bias_4way(cell_dla1,cell_qso1,cell_dla2,cell_qso2,cl_pr_dlo1,cl_pr_qso1,cl_pr_dlo2,cl_pr_qso2,covar_all) :
+    dv=np.concatenate((cell_dla1[i_good],cell_qso1[i_good],cell_dla2[i_good],cell_qso2[i_good]))
+    tv1=np.concatenate((cl_pr_dlo1[i_good],np.zeros(ndof),np.zeros(ndof),np.zeros(ndof)))
+    tv2=np.concatenate((np.zeros(ndof),np.zeros(ndof),cl_pr_dlo2[i_good],np.zeros(ndof)))
+    tv3=np.concatenate((cl_pr_qso1[i_good],cl_pr_qso1[i_good],np.zeros(ndof),np.zeros(ndof)))
+    tv4=np.concatenate((np.zeros(ndof),np.zeros(ndof),cl_pr_qso2[i_good],cl_pr_qso2[i_good]))
+    tv=np.array([tv1,tv2,tv3,tv4])
+    cv=np.zeros([4*ndof,4*ndof])
+    for i in np.arange(4) :
+        for j in np.arange(4) :
+            cv[i*ndof:(i+1)*ndof,j*ndof:(j+1)*ndof]=covar_all[i*nell:i*nell+ndof,j*nell:j*nell+ndof]
+    icv=np.linalg.inv(cv)
+    cov_b=np.linalg.inv(np.dot(tv,np.dot(icv,np.transpose(tv))))
+    b_bf=np.dot(cov_b,np.dot(tv,np.dot(icv,np.transpose(dv))))
+    
+    cb=np.array([[cov_b[0,0],cov_b[0,1]],[cov_b[1,0],cov_b[1,1]]])
+    db=np.array([b_bf[0],b_bf[1]])
+    u=np.ones(2); icb=np.linalg.inv(cb); 
+    mb=np.dot(u,np.dot(icb,db))/np.dot(u,np.dot(icb,u))
+    chi2=np.dot((db-mb*u),np.dot(icb,(db-mb*u)))
+
+    print b_bf[0],b_bf[1],np.sqrt(cov_b[0,0]),np.sqrt(cov_b[1,1]),cov_b[0,1]/np.sqrt(cov_b[0,0]*cov_b[1,1]),chi2,1-st.chi2.cdf(chi2,1)
+print "N12-N12B"
+fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_n12b,cell_qso_n12b,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_n12b,cl_pr_qso_n12b,covar_n12_n12b)
+print "N12-G16"
+fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_g16,cell_qso_g16,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_g16,cl_pr_qso_g16,covar_n12_g16)
 
 if plot_stuff :
     plt.show()
