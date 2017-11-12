@@ -77,6 +77,7 @@ mean_all_g16=np.mean(d['randoms_2'][:,2,1,:],axis=0)
 covar_all_g16=np.mean(d['randoms_2'][:,2,1,:,None]*d['randoms_2'][:,2,1,None,:],axis=0)-mean_all_g16[:,None]*mean_all_g16[None,:]
 corr_all_g16=covar_all_g16/np.sqrt(np.diag(covar_all_g16)[None,:]*np.diag(covar_all_g16)[:,None])
 
+'''
 mean_n12_n12b=np.zeros(4*nell)
 mean_n12_g16 =np.zeros(4*nell)
 covar_n12_n12b=np.zeros([4*nell,4*nell])
@@ -105,6 +106,7 @@ mean_n12_n12b/=nsims
 mean_n12_g16/=nsims
 covar_n12_n12b=covar_n12_n12b/nsims-mean_n12_n12b[:,None]*mean_n12_n12b[None,:]
 covar_n12_g16=covar_n12_g16/nsims-mean_n12_g16[:,None]*mean_n12_g16[None,:]
+'''
 
 mean_dla_n12=np.mean(d['randoms'][:,0,1,:],axis=0)
 covar_dla_n12=np.mean(d['randoms'][:,0,1,:,None]*d['randoms'][:,0,1,None,:],axis=0)-mean_dla_n12[:,None]*mean_dla_n12[None,:]
@@ -381,6 +383,7 @@ if plot_stuff :
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
+exit(1)
 
 def fit_bias_4way(cell_dla1,cell_qso1,cell_dla2,cell_qso2,cl_pr_dlo1,cl_pr_qso1,cl_pr_dlo2,cl_pr_qso2,covar_all) :
     dv=np.concatenate((cell_dla1[i_good],cell_qso1[i_good],cell_dla2[i_good],cell_qso2[i_good]))

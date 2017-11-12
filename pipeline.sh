@@ -94,6 +94,6 @@ do
     done
 done
 
-echo "Fiducial analysis:"
-python analysis_wth.py 3.0 32 2048 1 0
-python analysis_cls.py 40 2048 0.0 1000 0
+#echo "Fiducial analysis:"
+#python analysis_wth.py 3.0 32 2048 1 0
+#python analysis_cls.py 40 2048 0.0 1000 0
