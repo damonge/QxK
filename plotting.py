@@ -33,7 +33,7 @@ if sys.argv[1]=='table' or sys.argv[1]=='all' :
                                                                                                                       res[3][7],res[3][8],100*(1-st.chi2.cdf(res[3][9],31)),
                                                                                                                       res[10][19],np.sqrt(res[10][21]),100*(1-st.chi2.cdf(res[10][24],38)),
                                                                                                                       res[3][19],np.sqrt(res[3][21]),100*(1-st.chi2.cdf(res[3][24],62)))
-    print "N12B      %.3lf+-%.3lf(%.1lf%%)   %.3lf+-%.3lf( %.1lf%%)  |  %.3lf+-%.3lf(%.1lf%%)  %.3lf+-%.3lf(%.1lf%%)"%(res[10][10],res[10][11],100*(1-st.chi2.cdf(res[10][12],19)),
+    print "G16       %.3lf+-%.3lf(%.1lf%%)   %.3lf+-%.3lf( %.1lf%%)  |  %.3lf+-%.3lf(%.1lf%%)  %.3lf+-%.3lf(%.1lf%%)"%(res[10][10],res[10][11],100*(1-st.chi2.cdf(res[10][12],19)),
                                                                                                                       res[3][10],res[3][11],100*(1-st.chi2.cdf(res[3][12],31)),
                                                                                                                       res[10][25],np.sqrt(res[10][27]),100*(1-st.chi2.cdf(res[10][30],38)),
                                                                                                                       res[3][25],np.sqrt(res[3][27]),100*(1-st.chi2.cdf(res[3][30],62)))
@@ -260,7 +260,7 @@ if sys.argv[1]=='fig3b' or sys.argv[1]=='all' :
     ax.set_xlim([0,3])
     ax.set_ylim([-0.15,0.5])
     ax.set_xlabel('$\\theta\\,(^\\circ)$',fontsize=15)
-    ax.set_ylabel('$\\xi^{\\kappa,\\alpha}(\\theta)$',fontsize=15)
+    ax.set_ylabel('$10^3\\times\\xi^{\\kappa,\\alpha}(\\theta)$',fontsize=15)
     for tick in ax.xaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     for tick in ax.yaxis.get_major_ticks():
