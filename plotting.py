@@ -298,7 +298,7 @@ if sys.argv[1]=='fig4' or sys.argv[1]=='all' :
     ax.plot([-1,-1],[-1,-1],'k-',label='Best-fit')
     ax.plot([0,600],[0,0],'k--',lw=1)
     ax.set_xlim([40,600])
-    ax.set_ylim([-2E-7,6E-7])
+    ax.set_ylim([-2E-7,4.5E-7])
     ax.set_xlabel('$\\ell$',fontsize=15)
     ax.set_ylabel('$C^{\\kappa,{\\rm DLA}}_\\ell$',fontsize=15)
     for tick in ax.xaxis.get_major_ticks():
