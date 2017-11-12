@@ -183,4 +183,20 @@ if sys.argv[1]=='fig2d' or sys.argv[1]=='all' :
         tick.label.set_fontsize(12)
     plt.savefig('doc/corrmat_wth_b.pdf',bbox_inches='tight')
 
+if sys.argv[1]=='fig3a' or sys.argv[1]=='all' :
+    d=np.load("outputs_ell2_2002_ns2048_nlb50_apo0.000/cl_qxk_all.npz")
+    nsims=len(d['randoms'])
+    
+    igood=np.where(d['ll']<1002)[0]; nl=len(igood); nlt=len(d['ll']);
+    larr=d['ll'][igood]
+    cell_dla_n12=d['cell_dla_n12'][igood];
+    cell_qso_n12=d['cell_qso_n12'][igood];
+    cell_dlo_n12=cell_dla_n12-cell_qso_n12;
+    sell_dla_n12=np.std(d['randoms_2'][:,0,1,:,None],axis=0)[igood]
+    sell_qso_n12=np.std(d['randoms_2'][:,0,1,:,None],axis=0)[nlt+igood]
+    sell_dlo_n12=np.std(d['randoms'][:,7,1,:,None],axis=0)[igood]
+    plt.errorbar(larr,cell_dla_n12,yerr=sell_dla_n12,fmt='ro')
+    plt.errorbar(larr,cell_qso_n12,yerr=sell_qso_n12,fmt='bo')
+    plt.errorbar(larr,cell_dlo_n12,yerr=sell_dlo_n12,fmt='ko')
+    
 plt.show()
