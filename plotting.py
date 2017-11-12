@@ -98,7 +98,7 @@ if sys.argv[1]=='fig2a' or sys.argv[1]=='all' :
     corr_all_n12p[nl:,nl:]=corr_all_n12[nlt:,nlt:][igood,:][:,igood]
 
     plt.figure(); ax=plt.gca()
-    ax.set_title("$C_\ell\\textrm{-based\\,\\,corr.\\,\\,matrix}$",fontsize=16)
+    #ax.set_title("$C_\ell\\textrm{-based\\,\\,corr.\\,\\,matrix}$",fontsize=16)
     im=ax.imshow(corr_all_n12p,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
     cb=plt.colorbar(im,ax=ax)
     ax.text(0.05,0.45,'${\\rm DLA-DLA}$',transform=ax.transAxes,color='w')
@@ -113,7 +113,6 @@ if sys.argv[1]=='fig2a' or sys.argv[1]=='all' :
         tick.label.set_fontsize(12)
     plt.savefig('doc/corrmat_cls.pdf',bbox_inches='tight')
 
-
 if sys.argv[1]=='fig2b' or sys.argv[1]=='all' :
     d=np.load("outputs_thm3.0_ns2048_nb16_wiener/wth_qxk_all.npz")
     nsims=len(d['randoms'])
@@ -123,7 +122,7 @@ if sys.argv[1]=='fig2b' or sys.argv[1]=='all' :
     corr_all_n12=covar_all_n12/np.sqrt(np.diag(covar_all_n12)[None,:]*np.diag(covar_all_n12)[:,None])
 
     plt.figure(); ax=plt.gca()
-    ax.set_title("$\\xi(\\theta)\\textrm{-based\\,\\,corr.\\,\\,matrix}$",fontsize=16)
+    #ax.set_title("$\\xi(\\theta)\\textrm{-based\\,\\,corr.\\,\\,matrix}$",fontsize=16)
     im=ax.imshow(corr_all_n12,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
     cb=plt.colorbar(im,ax=ax)
     ax.text(0.27,0.45,'${\\rm DLA-DLA}$',transform=ax.transAxes,color='k')
@@ -137,7 +136,51 @@ if sys.argv[1]=='fig2b' or sys.argv[1]=='all' :
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     plt.savefig('doc/corrmat_wth.pdf',bbox_inches='tight')
+
+if sys.argv[1]=='fig2c' or sys.argv[1]=='all' :
+    d=np.load("outputs_ell2_2002_ns2048_nlb50_apo0.000/cl_qxk_all.npz")
+    nsims=len(d['randoms'])
     
+    igood=np.where(d['ll']<1002)[0]; nl=len(igood); nlt=len(d['ll']);
+    mean_dlo_n12=np.mean(d['randoms'][:,7,1,:],axis=0)
+    covar_dlo_n12=np.mean(d['randoms'][:,7,1,:,None]*d['randoms'][:,7,1,None,:],axis=0)-mean_dlo_n12[:,None]*mean_dlo_n12[None,:]
+    corr_dlo_n12=covar_dlo_n12/np.sqrt(np.diag(covar_dlo_n12)[None,:]*np.diag(covar_dlo_n12)[:,None])
+    corr_dlo_n12p=corr_dlo_n12[igood,:][:,igood]
+
+    plt.figure(); ax=plt.gca()
+    #ax.set_title("$C_\ell\\textrm{-based\\,\\,corr.\\,\\,matrix}$",fontsize=16)
+    im=ax.imshow(corr_dlo_n12p,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
+    cb=plt.colorbar(im,ax=ax)
+    ax.set_xlabel('${\\rm bin}\\,i$',fontsize=15)
+    ax.set_ylabel('${\\rm bin}\\,j$',fontsize=15)
+    ax.set_xticks([0,3,6,9,12,15,18])
+    ax.set_yticks([0,3,6,9,12,15,18])
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.savefig('doc/corrmat_cls_b.pdf',bbox_inches='tight')
+
+if sys.argv[1]=='fig2d' or sys.argv[1]=='all' :
+    d=np.load("outputs_thm3.0_ns2048_nb16_wiener/wth_qxk_all.npz")
+    nsims=len(d['randoms'])
     
+    mean_dlo_n12=np.mean(d['randoms'][:,7,1,:],axis=0)
+    covar_dlo_n12=np.mean(d['randoms'][:,7,1,:,None]*d['randoms'][:,7,1,None,:],axis=0)-mean_dlo_n12[:,None]*mean_dlo_n12[None,:]
+    corr_dlo_n12=covar_dlo_n12/np.sqrt(np.diag(covar_dlo_n12)[None,:]*np.diag(covar_dlo_n12)[:,None])
+
+    plt.figure(); ax=plt.gca()
+    #ax.set_title("$\\xi(\\theta)\\textrm{-based\\,\\,corr.\\,\\,matrix}$",fontsize=16)
+    im=ax.imshow(corr_dlo_n12,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
+    cb=plt.colorbar(im,ax=ax)
+    ax.set_xlabel('${\\rm bin}\\,i$',fontsize=15)
+    ax.set_ylabel('${\\rm bin}\\,j$',fontsize=15)
+    ax.set_xticks([0,3,6,9,12,15])
+    ax.set_yticks([0,3,6,9,12,15])
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.savefig('doc/corrmat_wth_b.pdf',bbox_inches='tight')
 
 plt.show()
