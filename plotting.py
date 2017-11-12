@@ -16,7 +16,7 @@ if len(sys.argv)!=2 :
     exit(1)
 
 col_N12="#0180EF"
-col_N12B="#0180EF"
+col_N12B="#CC0066"
 col_G16="#EF9001"
 
 if sys.argv[1]=='table' or sys.argv[1]=='all' :
@@ -222,6 +222,7 @@ if sys.argv[1]=='fig3a' or sys.argv[1]=='all' :
     ax.plot(larr_th,b_DLA*cl_dc_n12+b_QSO*cl_qc_n12,'r-')
     ax.plot(larr_th,b_QSO*cl_qc_n12,'b-')
     ax.plot(larr_th,b_DLO*cl_dc_n12,'k-',label='Best-fit')
+    ax.plot([0,600],[0,0],'k--',lw=1)
     ax.set_xlim([40,600])
     ax.set_ylim([-2E-7,6E-7])
     ax.set_xlabel('$\\ell$',fontsize=15)
@@ -257,6 +258,7 @@ if sys.argv[1]=='fig3b' or sys.argv[1]=='all' :
     ax.plot(tharr_th,b_DLA*1E3*wth_th_dlo_n12+b_QSO*1E3*wth_th_qso_n12,'r-')
     ax.plot(tharr_th,b_QSO*1E3*wth_th_qso_n12,'b-')
     ax.plot(tharr_th,b_DLO*1E3*wth_th_dlo_n12,'k-',label='Best-fit')
+    #ax.plot([0,3,[0,0],'k--',lw=1)
     ax.set_xlim([0,3])
     ax.set_ylim([-0.15,0.5])
     ax.set_xlabel('$\\theta\\,(^\\circ)$',fontsize=15)
@@ -267,5 +269,44 @@ if sys.argv[1]=='fig3b' or sys.argv[1]=='all' :
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
     plt.savefig("doc/wth_result.pdf",bbox_inches='tight')
+
+if sys.argv[1]=='fig4' or sys.argv[1]=='all' :
+    outdir="outputs_ell2_2002_ns2048_nlb50_apo0.000/"
+    d=np.load(outdir+"cl_qxk_all.npz")
+    res=np.genfromtxt('data/results.txt',dtype=None)
+    b_DLO_N12=res[10][4]; s_DLO_N12=res[10][5]
+    b_DLO_N12B=res[10][7]; s_DLO_N12B=res[10][8]
+    b_DLO_G16=res[10][10]; s_DLO_G16=res[10][11]
+
+    larr_th,cl_dc_n12,cl_qc_n12,cl_dc_n12b,cl_qc_n12b,cl_dc_g16,cl_qc_g16,cl_uc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
+    
+    larr=d['ll']; nl=len(larr)
+    cell_dla_n12=d['cell_dla_n12']; cell_qso_n12=d['cell_qso_n12'];
+    cell_dlo_n12=cell_dla_n12-cell_qso_n12; sell_dlo_n12=np.std(d['randoms'][:,7,1,:],axis=0)
+    cell_dla_n12b=d['cell_dla_n12b']; cell_qso_n12b=d['cell_qso_n12b'];
+    cell_dlo_n12b=cell_dla_n12b-cell_qso_n12b; sell_dlo_n12b=np.std(d['randoms'][:,8,1,:],axis=0)
+    cell_dla_g16=d['cell_dla_g16']; cell_qso_g16=d['cell_qso_g16'];
+    cell_dlo_g16=cell_dla_g16-cell_qso_g16; sell_dlo_g16=np.std(d['randoms'][:,9,1,:],axis=0)
+    
+    plt.figure(); ax=plt.gca()
+    ax.errorbar(larr,cell_dlo_n12,yerr=sell_dlo_n12,fmt='o',color=col_N12,label='N12')
+    ax.errorbar(larr,cell_dlo_n12b,yerr=sell_dlo_n12,fmt='s',color=col_N12B,label='N12B')
+    ax.errorbar(larr,cell_dlo_g16,yerr=sell_dlo_n12,fmt='d',color=col_G16,label='G16')
+    ax.plot(larr_th,b_DLO_N12*cl_dc_n12,'-',color=col_N12)
+    ax.plot(larr_th,b_DLO_G16*cl_dc_g16,'-',color=col_G16)
+    ax.plot(larr_th,b_DLO_N12B*cl_dc_n12b,'--',color=col_N12B)
+    ax.plot([-1,-1],[-1,-1],'k-',label='Best-fit')
+    ax.plot([0,600],[0,0],'k--',lw=1)
+    ax.set_xlim([40,600])
+    ax.set_ylim([-2E-7,6E-7])
+    ax.set_xlabel('$\\ell$',fontsize=15)
+    ax.set_ylabel('$C^{\\kappa,{\\rm DLA}}_\\ell$',fontsize=15)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.legend(loc='upper right',frameon=False,fontsize=14)
+    plt.savefig("doc/cls_syst.pdf",bbox_inches='tight')
+
     
 plt.show()
