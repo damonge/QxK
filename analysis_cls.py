@@ -383,6 +383,9 @@ if plot_stuff :
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
+line_out+="%.3lE %.3lE"%(1.0,1.0)
+if plot_stuff :
+    plt.show()
 with open('data/results.txt','a') as outfile:
     outfile.write(line_out+"\n")
 exit(1)
