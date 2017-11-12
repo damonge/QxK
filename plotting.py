@@ -4,6 +4,7 @@ from astropy.io import fits
 import pyfits as pf
 import common as cmm
 import sys
+import scipy.stats as st
 from matplotlib import rc
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
 ## for Palatino and other serif fonts use:
@@ -18,6 +19,24 @@ col_N12="#0180EF"
 col_N12B="#0180EF"
 col_G16="#EF9001"
 
+if sys.argv[1]=='table' or sys.argv[1]=='all' :
+    res=np.genfromtxt('data/results.txt',dtype=None)
+    print "Dataset   Direct subtraction                         |  Simultaneous fit"
+    print "          C_l                   wth                  |  C_l                  wth"
+    print "QSU       %.3lf+-%.3lf( %.1lf%%)   %.3lf+-%.3lf(%.1lf%%)  |  %.3lf+-%.3lf(%.1lf%%)  %.3lf+-%.3lf(%.1lf%%)"%(res[10][1],res[10][2],100*(1-st.chi2.cdf(res[10][3],19)),
+                                                                                                                      res[3][1],res[3][2],100*(1-st.chi2.cdf(res[3][3],31)),10,10,10,10,10,10)
+    print "N12       %.3lf+-%.3lf(%.1lf%%)   %.3lf+-%.3lf(%.1lf%%)  |  %.3lf+-%.3lf(%.1lf%%)  %.3lf+-%.3lf(%.1lf%%)"%(res[10][4],res[10][5],100*(1-st.chi2.cdf(res[10][6],19)),
+                                                                                                                      res[3][4],res[3][5],100*(1-st.chi2.cdf(res[3][6],31)),
+                                                                                                                      res[10][13],np.sqrt(res[10][15]),100*(1-st.chi2.cdf(res[10][18],38)),
+                                                                                                                      res[3][13],np.sqrt(res[3][15]),100*(1-st.chi2.cdf(res[3][18],62)))
+    print "N12B      %.3lf+-%.3lf(%.1lf%%)   %.3lf+-%.3lf(%.1lf%%)  |  %.3lf+-%.3lf(%.1lf%%)  %.3lf+-%.3lf(%.1lf%%)"%(res[10][7],res[10][8],100*(1-st.chi2.cdf(res[10][9],19)),
+                                                                                                                      res[3][7],res[3][8],100*(1-st.chi2.cdf(res[3][9],31)),
+                                                                                                                      res[10][19],np.sqrt(res[10][21]),100*(1-st.chi2.cdf(res[10][24],38)),
+                                                                                                                      res[3][19],np.sqrt(res[3][21]),100*(1-st.chi2.cdf(res[3][24],62)))
+    print "N12B      %.3lf+-%.3lf(%.1lf%%)   %.3lf+-%.3lf( %.1lf%%)  |  %.3lf+-%.3lf(%.1lf%%)  %.3lf+-%.3lf(%.1lf%%)"%(res[10][10],res[10][11],100*(1-st.chi2.cdf(res[10][12],19)),
+                                                                                                                      res[3][10],res[3][11],100*(1-st.chi2.cdf(res[3][12],31)),
+                                                                                                                      res[10][25],np.sqrt(res[10][27]),100*(1-st.chi2.cdf(res[10][30],38)),
+                                                                                                                      res[3][25],np.sqrt(res[3][27]),100*(1-st.chi2.cdf(res[3][30],62)))
 if sys.argv[1]=='fig1a' or sys.argv[1]=='all' :
     data_QSO=(fits.open(cmm.fname_qso))[1].data
     data_DLA_N12=(fits.open(cmm.fname_dla_n12))[1].data
@@ -85,7 +104,6 @@ if sys.argv[1]=='fig1b' or sys.argv[1]=='all' :
 
 if sys.argv[1]=='fig2a' or sys.argv[1]=='all' :
     d=np.load("outputs_ell2_2002_ns2048_nlb50_apo0.000/cl_qxk_all.npz")
-    nsims=len(d['randoms'])
     
     igood=np.where(d['ll']<1002)[0]; nl=len(igood); nlt=len(d['ll']);
     mean_all_n12=np.mean(d['randoms_2'][:,0,1,:],axis=0)
@@ -115,7 +133,6 @@ if sys.argv[1]=='fig2a' or sys.argv[1]=='all' :
 
 if sys.argv[1]=='fig2b' or sys.argv[1]=='all' :
     d=np.load("outputs_thm3.0_ns2048_nb16_wiener/wth_qxk_all.npz")
-    nsims=len(d['randoms'])
     
     mean_all_n12=np.mean(d['randoms_2'][:,0,1,:],axis=0)
     covar_all_n12=np.mean(d['randoms_2'][:,0,1,:,None]*d['randoms_2'][:,0,1,None,:],axis=0)-mean_all_n12[:,None]*mean_all_n12[None,:]
@@ -139,7 +156,6 @@ if sys.argv[1]=='fig2b' or sys.argv[1]=='all' :
 
 if sys.argv[1]=='fig2c' or sys.argv[1]=='all' :
     d=np.load("outputs_ell2_2002_ns2048_nlb50_apo0.000/cl_qxk_all.npz")
-    nsims=len(d['randoms'])
     
     igood=np.where(d['ll']<1002)[0]; nl=len(igood); nlt=len(d['ll']);
     mean_dlo_n12=np.mean(d['randoms'][:,7,1,:],axis=0)
@@ -163,7 +179,6 @@ if sys.argv[1]=='fig2c' or sys.argv[1]=='all' :
 
 if sys.argv[1]=='fig2d' or sys.argv[1]=='all' :
     d=np.load("outputs_thm3.0_ns2048_nb16_wiener/wth_qxk_all.npz")
-    nsims=len(d['randoms'])
     
     mean_dlo_n12=np.mean(d['randoms'][:,7,1,:],axis=0)
     covar_dlo_n12=np.mean(d['randoms'][:,7,1,:,None]*d['randoms'][:,7,1,None,:],axis=0)-mean_dlo_n12[:,None]*mean_dlo_n12[None,:]
@@ -184,10 +199,14 @@ if sys.argv[1]=='fig2d' or sys.argv[1]=='all' :
     plt.savefig('doc/corrmat_wth_b.pdf',bbox_inches='tight')
 
 if sys.argv[1]=='fig3a' or sys.argv[1]=='all' :
-    outdir="outputs_ell2_2002_ns2048_nlb40_apo0.000"
-    d=np.load(outdir+"/cl_qxk_all.npz")
+    outdir="outputs_ell2_2002_ns2048_nlb50_apo0.000/"
+    d=np.load(outdir+"cl_qxk_all.npz")
+    res=np.genfromtxt('data/results.txt',dtype=None)
+    b_DLO=res[10][4]; s_DLO=res[10][5]
+    b_DLA=res[10][13]; b_QSO=res[10][14];
+    s_DLA=np.sqrt(res[10][15]);  s_QSO=np.sqrt(res[10][17]); 
+
     larr_th,cl_dc_n12,cl_qc_n12,cl_dc_n12b,cl_qc_n12b,cl_dc_g16,cl_qc_g16,cl_uc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
-    nsims=len(d['randoms'])
     
     larr=d['ll']; nl=len(larr)
     cell_dla_n12=d['cell_dla_n12']
@@ -197,12 +216,56 @@ if sys.argv[1]=='fig3a' or sys.argv[1]=='all' :
     sell_qso_n12=np.std(d['randoms_2'][:,0,1,:],axis=0)[nl:]
     sell_dlo_n12=np.std(d['randoms'][:,7,1,:],axis=0)
     plt.figure(); ax=plt.gca()
-    ax.errorbar(larr,cell_dla_n12,yerr=sell_dla_n12,fmt='ro')
-    ax.errorbar(larr,cell_qso_n12,yerr=sell_qso_n12,fmt='bo')
-    ax.plot(larr_th,2.79*cl_dc_n12,'r-')
-    ax.plot(larr_th,2.79*cl_dc_n12+,'r-')
-#    ax.errorbar(larr,cell_dlo_n12,yerr=sell_dlo_n12,fmt='ko')
-    ax.set_xlim([0,600])
-#    ax.set_ylim([-4E-7,8E-7])
+    ax.errorbar(larr,cell_dla_n12,yerr=sell_dla_n12,fmt='ro',label='DLA+QSO')
+    ax.errorbar(larr,cell_qso_n12,yerr=sell_qso_n12,fmt='bs',label='QSO')
+    ax.errorbar(larr,cell_dlo_n12,yerr=sell_dlo_n12,fmt='kd',label='DLA')
+    ax.plot(larr_th,b_DLA*cl_dc_n12+b_QSO*cl_qc_n12,'r-')
+    ax.plot(larr_th,b_QSO*cl_qc_n12,'b-')
+    ax.plot(larr_th,b_DLO*cl_dc_n12,'k-',label='Best-fit')
+    ax.set_xlim([40,600])
+    ax.set_ylim([-2E-7,6E-7])
+    ax.set_xlabel('$\\ell$',fontsize=15)
+    ax.set_ylabel('$C^{\\kappa,\\alpha}_\\ell$',fontsize=15)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.legend(loc='upper right',frameon=False,fontsize=14)
+    plt.savefig("doc/cls_result.pdf",bbox_inches='tight')
+
+if sys.argv[1]=='fig3b' or sys.argv[1]=='all' :
+    outdir="outputs_thm3.0_ns2048_nb16_wiener/"
+    d=np.load(outdir+"wth_qxk_all.npz")
+    res=np.genfromtxt('data/results.txt',dtype=None)
+    b_DLO=res[3][4]; s_DLO=res[3][5]
+    b_DLA=res[3][13]; b_QSO=res[3][14];
+    s_DLA=np.sqrt(res[3][15]);  s_QSO=np.sqrt(res[3][17]); 
+
+    tharr_th,wth_th_dlo_n12,wth_th_qso_n12,wth_th_dlo_n12b,wth_th_qso_n12b,wth_th_dlo_g16,wth_th_qso_g16,wth_th_qsu=np.loadtxt(outdir+"wth_th.txt",unpack=True)
+    
+    tharr=d['th']; nth=len(tharr)
+    wth_dla_n12=d['wth_dla_n12'];
+    wth_qso_n12=d['wth_qso_n12'];
+    wth_dlo_n12=wth_dla_n12-wth_qso_n12
+    sth_dla_n12=np.std(d['randoms_2'][:,0,1,:],axis=0)[:nth]
+    sth_qso_n12=np.std(d['randoms_2'][:,0,1,:],axis=0)[nth:]
+    sth_dlo_n12=np.std(d['randoms'][:,7,1,:],axis=0)
+    plt.figure(); ax=plt.gca()
+    ax.errorbar(tharr,1E3*wth_dla_n12,yerr=1E3*sth_dla_n12,fmt='ro',label='DLA+QSO')
+    ax.errorbar(tharr,1E3*wth_qso_n12,yerr=1E3*sth_qso_n12,fmt='bs',label='QSO')
+    ax.errorbar(tharr,1E3*wth_dlo_n12,yerr=1E3*sth_dlo_n12,fmt='kd',label='DLA')
+    ax.plot(tharr_th,b_DLA*1E3*wth_th_dlo_n12+b_QSO*1E3*wth_th_qso_n12,'r-')
+    ax.plot(tharr_th,b_QSO*1E3*wth_th_qso_n12,'b-')
+    ax.plot(tharr_th,b_DLO*1E3*wth_th_dlo_n12,'k-',label='Best-fit')
+    ax.set_xlim([0,3])
+    ax.set_ylim([-0.15,0.5])
+    ax.set_xlabel('$\\theta\\,(^\\circ)$',fontsize=15)
+    ax.set_ylabel('$\\xi^{\\kappa,\\alpha}(\\theta)$',fontsize=15)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.legend(loc='upper right',frameon=False,fontsize=14)
+    plt.savefig("doc/wth_result.pdf",bbox_inches='tight')
     
 plt.show()
