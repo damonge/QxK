@@ -383,6 +383,8 @@ if plot_stuff :
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
+with open('data/results.txt','a') as outfile:
+    outfile.write(line_out+"\n")
 exit(1)
 
 def fit_bias_4way(cell_dla1,cell_qso1,cell_dla2,cell_qso2,cl_pr_dlo1,cl_pr_qso1,cl_pr_dlo2,cl_pr_qso2,covar_all) :
