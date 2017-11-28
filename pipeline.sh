@@ -94,6 +94,9 @@ do
     done
 done
 
+echo "Running Fisher forecasts"
+python fisher.py
+
 echo "Generating plots"
 python plotting.py all
 
