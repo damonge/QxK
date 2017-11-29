@@ -6,6 +6,7 @@ import os
 import sys
 import common as cmm
 import pymaster as nmt
+import qxk
 
 if len(sys.argv)!=7 :
     print "Usage : run_correlations.py lmin lmax nlb nside nsims aposcale"
@@ -52,27 +53,20 @@ print " Reading QSO mask"
 msk_qso=hp.ud_grade(hp.read_map(cmm.fname_mask_qso,verbose=False),nside_out=nside)
 
 print " Computing DLA and QSO overdensity maps"
-mpn_dla_n12 =np.bincount(hp.ang2pix(nside,np.pi*(90-data_dla_n12['B'])/180,np.pi*data_dla_n12['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_dla_n12['W'])+0.
-mpn_qso_n12 =np.bincount(hp.ang2pix(nside,np.pi*(90-data_qso['B'])/180,np.pi*data_qso['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_qso['W_N12'])+0.
-mpn_dla_n12b=np.bincount(hp.ang2pix(nside,np.pi*(90-data_dla_n12b['B'])/180,np.pi*data_dla_n12b['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_dla_n12b['W'])+0.
-mpn_qso_n12b=np.bincount(hp.ang2pix(nside,np.pi*(90-data_qso['B'])/180,np.pi*data_qso['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_qso['W_N12B'])+0.
-mpn_dla_g16 =np.bincount(hp.ang2pix(nside,np.pi*(90-data_dla_g16['B'])/180,np.pi*data_dla_g16['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_dla_g16['W'])+0.
-mpn_qso_g16 =np.bincount(hp.ang2pix(nside,np.pi*(90-data_qso['B'])/180,np.pi*data_qso['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_qso['W_G16'])+0.
-mpn_qsu     =np.bincount(hp.ang2pix(nside,np.pi*(90-data_qsu['B'])/180,np.pi*data_qsu['L']/180),
-                         minlength=hp.nside2npix(nside),weights=data_qsu['W_DUM'])+0.
-mpd_dla_n12 =msk_qso*(msk_qso*mpn_dla_n12*np.sum(msk_qso)/np.sum(mpn_dla_n12*msk_qso)-1.)
-mpd_qso_n12 =msk_qso*(msk_qso*mpn_qso_n12*np.sum(msk_qso)/np.sum(mpn_qso_n12*msk_qso)-1.)
-mpd_dla_n12b=msk_qso*(msk_qso*mpn_dla_n12b*np.sum(msk_qso)/np.sum(mpn_dla_n12b*msk_qso)-1.)
-mpd_qso_n12b=msk_qso*(msk_qso*mpn_qso_n12b*np.sum(msk_qso)/np.sum(mpn_qso_n12b*msk_qso)-1.)
-mpd_dla_g16 =msk_qso*(msk_qso*mpn_dla_g16*np.sum(msk_qso)/np.sum(mpn_dla_g16*msk_qso)-1.)
-mpd_qso_g16 =msk_qso*(msk_qso*mpn_qso_g16*np.sum(msk_qso)/np.sum(mpn_qso_g16*msk_qso)-1.)
-mpd_qsu     =msk_qso*(msk_qso*mpn_qsu*np.sum(msk_qso)/np.sum(mpn_qsu*msk_qso)-1.)
+mpd_dla_n12=qxk.delta_n_map(data_dla_n12['B'],data_dla_n12['L'],nside,
+                            completeness_map=msk_qso,weights=data_dla_n12['W'])
+mpd_qso_n12=qxk.delta_n_map(data_qso['B'],data_qso['L'],nside,
+                            completeness_map=msk_qso,weights=data_qso['W_N12'])
+mpd_dla_n12b=qxk.delta_n_map(data_dla_n12b['B'],data_dla_n12b['L'],nside,
+                             completeness_map=msk_qso,weights=data_dla_n12b['W'])
+mpd_qso_n12b=qxk.delta_n_map(data_qso['B'],data_qso['L'],nside,
+                            completeness_map=msk_qso,weights=data_qso['W_N12B'])
+mpd_dla_g16=qxk.delta_n_map(data_dla_g16['B'],data_dla_g16['L'],nside,
+                            completeness_map=msk_qso,weights=data_dla_g16['W'])
+mpd_qso_g16=qxk.delta_n_map(data_qso['B'],data_qso['L'],nside,
+                            completeness_map=msk_qso,weights=data_qso['W_G16'])
+mpd_qsu    =qxk.delta_n_map(data_qsu['B'],data_qsu['L'],nside,
+                            completeness_map=msk_qso,weights=data_qso_n12['W_DUM'])
 
 print " Reading kappa map and mask"
 msk_kappa=hp.read_map(fname_mask_cmbl,verbose=False)
@@ -118,16 +112,20 @@ def compute_cell(fld1,fld2) :
     return (cl_decoupled[0])[ibin_use]
 
 print " Computing data power spectra"
-cell_dla_n12 =compute_cell(fld_kappa,fld_dla_n12 ); np.savetxt(outdir+"cell_c_dla_n12.txt" ,np.transpose([ell_list,cell_dla_n12 ]))
-cell_qso_n12 =compute_cell(fld_kappa,fld_qso_n12 ); np.savetxt(outdir+"cell_c_qso_n12.txt" ,np.transpose([ell_list,cell_qso_n12 ]))
-cell_dlo_n12 =cell_dla_n12-cell_qso_n12
-cell_dla_n12b=compute_cell(fld_kappa,fld_dla_n12b); np.savetxt(outdir+"cell_c_dla_n12b.txt",np.transpose([ell_list,cell_dla_n12b]))
-cell_qso_n12b=compute_cell(fld_kappa,fld_qso_n12b); np.savetxt(outdir+"cell_c_qso_n12b.txt",np.transpose([ell_list,cell_qso_n12b]))
-cell_dlo_n12b=cell_dla_n12b-cell_qso_n12b
-cell_dla_g16 =compute_cell(fld_kappa,fld_dla_g16 ); np.savetxt(outdir+"cell_c_dla_g16.txt" ,np.transpose([ell_list,cell_dla_g16 ]))
-cell_qso_g16 =compute_cell(fld_kappa,fld_qso_g16 ); np.savetxt(outdir+"cell_c_qso_g16.txt" ,np.transpose([ell_list,cell_qso_g16 ]))
-cell_dlo_g16 =cell_dla_g16-cell_qso_g16
-cell_qsu     =compute_cell(fld_kappa,fld_qsu     ); np.savetxt(outdir+"cell_c_qsu.txt"     ,np.transpose([ell_list,cell_qsu     ]))
+cell_dla_n12 =qxk.compute_cell(fld_kappa,fld_dla_n12,are_fields=True,bpw)[ibin_use];
+np.savetxt(outdir+"cell_c_dla_n12.txt" ,np.transpose([ell_list,cell_dla_n12]))
+cell_qso_n12 =qxk.compute_cell(fld_kappa,fld_qso_n12,are_fields=True,bpw)[ibin_use];
+np.savetxt(outdir+"cell_c_qso_n12.txt" ,np.transpose([ell_list,cell_qso_n12]))
+cell_dla_n12b=qxk.compute_cell(fld_kappa,fld_dla_n12b,are_fields=True,bpw)[ibin_use];
+np.savetxt(outdir+"cell_c_dla_n12b.txt" ,np.transpose([ell_list,cell_dla_n12b]))
+cell_qso_n12b=qxk.compute_cell(fld_kappa,fld_qso_n12b,are_fields=True,bpw)[ibin_use];
+np.savetxt(outdir+"cell_c_qso_n12b.txt" ,np.transpose([ell_list,cell_qso_n12b]))
+cell_dla_g16 =qxk.compute_cell(fld_kappa,fld_dla_g16,are_fields=True,bpw)[ibin_use];
+np.savetxt(outdir+"cell_c_dla_g16.txt" ,np.transpose([ell_list,cell_dla_g16]))
+cell_qso_g16 =qxk.compute_cell(fld_kappa,fld_qso_g16,are_fields=True,bpw)[ibin_use];
+np.savetxt(outdir+"cell_c_qso_g16.txt" ,np.transpose([ell_list,cell_qso_g16]))
+cell_qsu     =qxk.compute_cell(fld_kappa,fld_qsu,are_fields=True,bpw);
+np.savetxt(outdir+"cell_c_qsu.txt"     ,np.transpose([ell_list,cell_qsu]))
 
 def get_random_cell(isim) :
     fname_dla_n12 =outdir+'cell_c_dla_n12_random%d.txt'%isim
@@ -143,15 +141,22 @@ def get_random_cell(isim) :
              (os.path.isfile(fname_dla_g16)) and (os.path.isfile(fname_qso_g16)) and
              (os.path.isfile(fname_qsu)))) :
         cleanup=True
-        mpk=cmm.random_map(1000+isim,msk_kappa,cmm.fname_kappa_cl)
+        mpk=qxk.random_map(1000+isim,msk_kappa,cmm.fname_kappa_cl)
         fldk=nmt.NmtField(msk_kappa_apo,[mpk])
-        cl_dla_n12=compute_cell(fldk,fld_dla_n12); np.savetxt(fname_dla_n12,np.transpose([ell_list,cl_dla_n12]))
-        cl_qso_n12=compute_cell(fldk,fld_qso_n12); np.savetxt(fname_qso_n12,np.transpose([ell_list,cl_qso_n12]))
-        cl_dla_n12b=compute_cell(fldk,fld_dla_n12b); np.savetxt(fname_dla_n12b,np.transpose([ell_list,cl_dla_n12b]))
-        cl_qso_n12b=compute_cell(fldk,fld_qso_n12b); np.savetxt(fname_qso_n12b,np.transpose([ell_list,cl_qso_n12b]))
-        cl_dla_g16=compute_cell(fldk,fld_dla_g16); np.savetxt(fname_dla_g16,np.transpose([ell_list,cl_dla_g16]))
-        cl_qso_g16=compute_cell(fldk,fld_qso_g16); np.savetxt(fname_qso_g16,np.transpose([ell_list,cl_qso_g16]))
-        cl_qsu=compute_cell(fldk,fld_qsu); np.savetxt(fname_qsu,np.transpose([ell_list,cl_qsu]))
+        cl_dla_n12=qxk.compute_cell(fldk,fld_dla_n12,are_fields=True,bpw)[ibin_use];
+        np.savetxt(fname_dla_n12,np.transpose([ell_list,cl_dla_n12]))
+        cl_qso_n12=qxk.compute_cell(fldk,fld_qso_n12,are_fields=True,bpw)[ibin_use];
+        np.savetxt(fname_qso_n12,np.transpose([ell_list,cl_qso_n12]))
+        cl_dla_n12b=qxk.compute_cell(fldk,fld_dla_n12b,are_fields=True,bpw)[ibin_use];
+        np.savetxt(fname_dla_n12b,np.transpose([ell_list,cl_dla_n12b]))
+        cl_qso_n12b=qxk.compute_cell(fldk,fld_qso_n12b,are_fields=True,bpw)[ibin_use];
+        np.savetxt(fname_qso_n12b,np.transpose([ell_list,cl_qso_n12b]))
+        cl_dla_g16=qxk.compute_cell(fldk,fld_dla_g16,are_fields=True,bpw)[ibin_use];
+        np.savetxt(fname_dla_g16,np.transpose([ell_list,cl_dla_g16]))
+        cl_qso_g16=qxk.compute_cell(fldk,fld_qso_g16,are_fields=True,bpw)[ibin_use];
+        np.savetxt(fname_qso_g16,np.transpose([ell_list,cl_qso_g16]))
+        cl_qsu=qxk.compute_cell(fldk,fld_qsu,are_fields=True,bpw)[ibin_use];
+        np.savetxt(fname_qsu,np.transpose([ell_list,cl_qsu]))
     else :
         ll,cl_dla_n12 =np.loadtxt(fname_dla_n12 ,unpack=True)
         ll,cl_qso_n12 =np.loadtxt(fname_qso_n12 ,unpack=True)
