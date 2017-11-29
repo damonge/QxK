@@ -308,5 +308,45 @@ if sys.argv[1]=='fig4' or sys.argv[1]=='all' :
     plt.legend(loc='upper right',frameon=False,fontsize=14)
     plt.savefig("doc/cls_syst.pdf",bbox_inches='tight')
 
+if sys.argv[1]=='fig5' or sys.argv[1]=='all' :
+    bdla=2.
+    #col_Planck=col_N12
+    #col_S3=col_N12B
+    #col_S4=col_G16
+    #col_Planck="#CC0000"
+    #col_S3="#004C99"
+    #col_S4="#D8BB00"
+    col_Planck="#CC0000"
+    col_S3="#D8BB00"
+    col_S4="#770077"
+
+    data=np.load("4casts.npy").item()
+    def add_rectangle(x,s,ax,fc,label=None) :
+        ax.fill_between([x-0.25,x+0.25],[bdla-s,bdla-s],[bdla+s,bdla+s],facecolor=fc,edgecolor=None,label=label)
+    plt.figure()
+    ax=plt.gca()
+    add_rectangle(1,data['sdss']['planck'],ax,col_Planck,label='Planck')
+    add_rectangle(2,data['desi']['planck'],ax,col_Planck)
+    add_rectangle(3,data['4most']['planck'],ax,col_Planck)
+    add_rectangle(1,data['sdss']['s3'],ax,col_S3,label='S3')
+    add_rectangle(2,data['desi']['s3'],ax,col_S3)
+    add_rectangle(3,data['4most']['s3'],ax,col_S3)
+    add_rectangle(1,data['sdss']['s4'],ax,col_S4,label='S4')
+    add_rectangle(2,data['desi']['s4'],ax,col_S4)
+    add_rectangle(3,data['4most']['s4'],ax,col_S4)
+    ax.plot([0.5,3.5],[bdla,bdla],'k-',lw=1)
+    ax.plot([0.5,3.5],[1.5,1.5],'k--',lw=1)
+    ax.set_xlim([0.5,3.5])
+    ax.set_xlabel('Galaxy survey',fontsize=15)
+    ax.set_ylabel('$\\sigma\\left(b_{\\rm DLA}\\right)$',fontsize=15)
+    plt.yticks([1.2,1.6,2.0,2.4,2.8])#,['SDSS','DESI','4MOST'])
+    plt.xticks([1,2,3],['SDSS','DESI','4MOST'])
+    for tick in ax.yaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    for tick in ax.xaxis.get_major_ticks():
+        tick.label.set_fontsize(12)
+    plt.subplots_adjust(bottom=0.15)
+    plt.legend(loc='upper right')
+    plt.savefig("doc/4casts.pdf",bbox_inches='tight')
     
 plt.show()
