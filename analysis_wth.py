@@ -1,6 +1,5 @@
 from astropy.io import fits
 import numpy as np
-import healpy as hp
 import matplotlib.pyplot as plt
 import pylab
 from scipy.interpolate import interp1d
@@ -8,9 +7,8 @@ import os
 import sys
 import common as cmm
 import pyccl as ccl
-import cl2wth as c2w
-from scipy.integrate import quad
 import scipy.stats as st
+import qxk
 
 from matplotlib import rc
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
@@ -48,15 +46,18 @@ if use_wiener :
     outdir+="_wiener"
 outdir+="/"
 
+#Start of the line that will go into results.txt
 line_out="wth_Ns%d_thm%.1lf_nb%d "%(nside,thmax,nth)
 
 fname_alldata=outdir+"wth_qxk_all"
 
+#Read catalogs
 data_dla_n12=(fits.open(cmm.fname_dla_n12))[1].data
 data_dla_n12b=(fits.open(cmm.fname_dla_n12b))[1].data
 data_dla_g16=(fits.open(cmm.fname_dla_g16))[1].data
 data_qso=(fits.open(cmm.fname_qso))[1].data
 
+#Read 2-point data
 d=np.load(fname_alldata+'.npz')
 
 tharr=d['th']
@@ -66,8 +67,10 @@ wth_dla_g16=d['wth_dla_g16']; wth_qso_g16=d['wth_qso_g16']; wth_dlo_g16=wth_dla_
 wth_qsu=d['wth_qsu']
 
 
+#Compute covariance matrices
 if verbose :
     print " Computing covariance matrices"
+nsims=len(d['randoms'])
 mean_all_n12=np.mean(d['randoms_2'][:,0,1,:],axis=0)
 covar_all_n12=np.mean(d['randoms_2'][:,0,1,:,None]*d['randoms_2'][:,0,1,None,:],axis=0)-mean_all_n12[:,None]*mean_all_n12[None,:]
 corr_all_n12=covar_all_n12/np.sqrt(np.diag(covar_all_n12)[None,:]*np.diag(covar_all_n12)[:,None])
@@ -116,6 +119,7 @@ if plot_stuff :
     def plot_corr(mat,name,fname='none') :
         plt.figure()
         ax=plt.gca()
+        ax.set_title(name,fontsize=16)
         im=ax.imshow(corr_all,origin='lower',interpolation='nearest',cmap=plt.get_cmap('bone'))
         cb=plt.colorbar(im,ax=ax)
         ax.text(0.27,0.45,'${\\rm DLA-DLA}$',transform=ax.transAxes)
@@ -128,11 +132,9 @@ if plot_stuff :
             tick.label.set_fontsize(12)
         for tick in ax.yaxis.get_major_ticks():
             tick.label.set_fontsize(12)
-        if fname!='none' :
-            plt.savefig(fname,bbox_inches='tight')
-        plot_corr(corr_all_n12,"N12")
-        plot_corr(corr_all_n12b,"N12B")
-        plot_corr(corr_all_g16,"G16")
+    plot_corr(corr_all_n12,"N12")
+    plot_corr(corr_all_n12b,"N12B")
+    plot_corr(corr_all_g16,"G16")
 
 if verbose :
     print " Computing theory prediction"
@@ -143,21 +145,27 @@ def get_nz_oversample(bins,nzar,nbins) :
     zarr=bins[0]+(bins[-1]-bins[0])*np.arange(nbins)/(nbins-1.)
     pzarr=nf(zarr)
     return zarr,pzarr
-nz,bn=np.histogram(data_dla_n12['z_abs'],range=[0,7],bins=50); zarr_dlo_n12,nzarr_dlo_n12=get_nz_oversample(bn,nz,256)
-bzarr_dlo_n12=cmm.bias_dla(zarr_dlo_n12)
-nz,bins=np.histogram(data_dla_n12['zqso'],range=[0,7],bins=50); zarr_qso_n12,nzarr_qso_n12=get_nz_oversample(bn,nz,256)
-bzarr_qso_n12=cmm.bias_qso(zarr_qso_n12)
-nz,bn=np.histogram(data_dla_n12b['z_abs'],range=[0,7],bins=50); zarr_dlo_n12b,nzarr_dlo_n12b=get_nz_oversample(bn,nz,256)
-bzarr_dlo_n12b=cmm.bias_dla(zarr_dlo_n12b)
-nz,bins=np.histogram(data_dla_n12b['zqso'],range=[0,7],bins=50); zarr_qso_n12b,nzarr_qso_n12b=get_nz_oversample(bn,nz,256)
-bzarr_qso_n12b=cmm.bias_qso(zarr_qso_n12b)
-nz,bn=np.histogram(data_dla_g16['z_abs'],range=[0,7],bins=50); zarr_dlo_g16,nzarr_dlo_g16=get_nz_oversample(bn,nz,256)
-bzarr_dlo_g16=cmm.bias_dla(zarr_dlo_g16)
-nz,bins=np.histogram(data_dla_g16['zqso'],range=[0,7],bins=50); zarr_qso_g16,nzarr_qso_g16=get_nz_oversample(bn,nz,256)
-bzarr_qso_g16=cmm.bias_qso(zarr_qso_g16)
+nz,bn=np.histogram(data_dla_n12['z_abs'],range=[0,7],bins=50);
+zarr_dlo_n12,nzarr_dlo_n12=get_nz_oversample(bn,nz,256)
+bzarr_dlo_n12=np.ones_like(zarr_dlo_n12)
+nz,bins=np.histogram(data_dla_n12['zqso'],range=[0,7],bins=50);
+zarr_qso_n12,nzarr_qso_n12=get_nz_oversample(bn,nz,256)
+bzarr_qso_n12=np.ones_like(zarr_qso_n12)
+nz,bn=np.histogram(data_dla_n12b['z_abs'],range=[0,7],bins=50);
+zarr_dlo_n12b,nzarr_dlo_n12b=get_nz_oversample(bn,nz,256)
+bzarr_dlo_n12b=np.ones_like(zarr_dlo_n12b)
+nz,bins=np.histogram(data_dla_n12b['zqso'],range=[0,7],bins=50);
+zarr_qso_n12b,nzarr_qso_n12b=get_nz_oversample(bn,nz,256)
+bzarr_qso_n12b=np.ones_like(zarr_qso_n12b)
+nz,bn=np.histogram(data_dla_g16['z_abs'],range=[0,7],bins=50);
+zarr_dlo_g16,nzarr_dlo_g16=get_nz_oversample(bn,nz,256)
+bzarr_dlo_g16=np.ones_like(zarr_dlo_g16)
+nz,bins=np.histogram(data_dla_g16['zqso'],range=[0,7],bins=50);
+zarr_qso_g16,nzarr_qso_g16=get_nz_oversample(bn,nz,256)
+bzarr_qso_g16=np.ones_like(zarr_qso_g16)
 nz,bins=np.histogram(data_qso['Z_PIPE'][np.where(data_qso['UNIHI'])[0]],range=[0,7],bins=50)
 zarr_qsu,nzarr_qsu=get_nz_oversample(bn,nz,256)
-bzarr_qsu=cmm.bias_qso(zarr_qsu)
+bzarr_qsu=np.ones_like(zarr_qsu)
 
 if plot_stuff :
     plt.figure()
@@ -181,70 +189,60 @@ def get_wiener(ell) :
     ids_good=np.where(ell<=lmx_wl)[0]
     ret[ids_good]=wl[(ell.astype(int))[ids_good]]
     return ret
-
-if not os.path.isfile(outdir+"cls_th.txt") :
-    cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
-    clt_dlo_n12 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo_n12,nzarr_dlo_n12),(zarr_dlo_n12,bzarr_dlo_n12))
-    clt_qso_n12 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso_n12,nzarr_qso_n12),(zarr_qso_n12,bzarr_qso_n12))
-    clt_dlo_n12b =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo_n12b,nzarr_dlo_n12b),(zarr_dlo_n12b,bzarr_dlo_n12b))
-    clt_qso_n12b =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso_n12b,nzarr_qso_n12b),(zarr_qso_n12b,bzarr_qso_n12b))
-    clt_dlo_g16 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo_g16,nzarr_dlo_g16),(zarr_dlo_g16,bzarr_dlo_g16))
-    clt_qso_g16 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso_g16,nzarr_qso_g16),(zarr_qso_g16,bzarr_qso_g16))
-    clt_qsu =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qsu,nzarr_qsu),(zarr_qsu,bzarr_qsu))
-    clt_cmbl=ccl.ClTracerCMBLensing(cosmo)
-    larr_b     =np.concatenate((1.*np.arange(500),500+10*np.arange(950)))
-    if use_wiener :
-        wil=get_wiener(larr_b)
-    else :
-        wil=np.ones(len(larr_b))
-    cl_dc_n12=ccl.angular_cl(cosmo,clt_dlo_n12,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_qc_n12=ccl.angular_cl(cosmo,clt_qso_n12,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_dc_n12b=ccl.angular_cl(cosmo,clt_dlo_n12b,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_qc_n12b=ccl.angular_cl(cosmo,clt_qso_n12b,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_dc_g16=ccl.angular_cl(cosmo,clt_dlo_g16,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_qc_g16=ccl.angular_cl(cosmo,clt_qso_g16,clt_cmbl,larr_b,l_limber=-1)*wil
-    cl_uc=ccl.angular_cl(cosmo,clt_qsu,clt_cmbl,larr_b,l_limber=-1)*wil
-    np.savetxt(outdir+"cls_th.txt",np.transpose([larr_b,
-                                                 cl_dc_n12,cl_qc_n12,
-                                                 cl_dc_n12b,cl_qc_n12b,
-                                                 cl_dc_g16,cl_qc_g16,
-                                                 cl_uc]))
-larr,cl_dc_n12,cl_qc_n12,cl_dc_n12b,cl_qc_n12b,cl_dc_g16,cl_qc_g16,cl_uc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
+if use_wiener :
+    wfunc=get_wiener
+else :
+    wfunc=None
 
 if verbose :
     print "   w(theta)"
 if not os.path.isfile(outdir+"wth_th.txt") :
+    cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
     tharr_th=thmax*np.arange(256)/255.
-    wth_th_dlo_n12=c2w.compute_wth(larr,cl_dc_n12,tharr_th)
-    wth_th_qso_n12=c2w.compute_wth(larr,cl_qc_n12,tharr_th)
-    wth_th_dlo_n12b=c2w.compute_wth(larr,cl_dc_n12b,tharr_th)
-    wth_th_qso_n12b=c2w.compute_wth(larr,cl_qc_n12b,tharr_th)
-    wth_th_dlo_g16=c2w.compute_wth(larr,cl_dc_g16,tharr_th)
-    wth_th_qso_g16=c2w.compute_wth(larr,cl_qc_g16,tharr_th)
-    wth_th_qsu=c2w.compute_wth(larr,cl_uc,tharr_th)
+    wth_th_dlo_n12=qxk.compute_theory(zarr_dlo_n12,nzarr_dlo_n12,bzarr_dlo_n12,cosmo,tharr_th,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_th_qso_n12=qxk.compute_theory(zarr_qso_n12,nzarr_qso_n12,bzarr_qso_n12,cosmo,tharr_th,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_th_dlo_n12b=qxk.compute_theory(zarr_dlo_n12b,nzarr_dlo_n12b,bzarr_dlo_n12b,cosmo,tharr_th,
+                                       return_correlation=True,filter_function=wfunc)
+    wth_th_qso_n12b=qxk.compute_theory(zarr_qso_n12b,nzarr_qso_n12b,bzarr_qso_n12b,cosmo,tharr_th,
+                                       return_correlation=True,filter_function=wfunc)
+    wth_th_dlo_g16=qxk.compute_theory(zarr_dlo_g16,nzarr_dlo_g16,bzarr_dlo_g16,cosmo,tharr_th,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_th_qso_g16=qxk.compute_theory(zarr_qso_g16,nzarr_qso_g16,bzarr_qso_g16,cosmo,tharr_th,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_th_qsu=qxk.compute_theory(zarr_qsu,nzarr_qsu,bzarr_qsu,cosmo,tharr_th,
+                                  return_correlation=True,filter_function=wfunc)
     np.savetxt(outdir+"wth_th.txt",np.transpose([tharr_th,
                                                  wth_th_dlo_n12,wth_th_qso_n12,
                                                  wth_th_dlo_n12b,wth_th_qso_n12b,
                                                  wth_th_dlo_g16,wth_th_qso_g16,
                                                  wth_th_qsu]))
 tharr_th,wth_th_dlo_n12,wth_th_qso_n12,wth_th_dlo_n12b,wth_th_qso_n12b,wth_th_dlo_g16,wth_th_qso_g16,wth_th_qsu=np.loadtxt(outdir+"wth_th.txt",unpack=True)
-    
-#Binning theory
+
 dth=tharr[1]-tharr[0]
-wth_f_dlo_n12=interp1d(tharr_th,tharr_th*wth_th_dlo_n12,bounds_error=False,fill_value=0)
-wth_pr_dlo_n12=np.array([quad(wth_f_dlo_n12,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qso_n12=interp1d(tharr_th,tharr_th*wth_th_qso_n12,bounds_error=False,fill_value=0)
-wth_pr_qso_n12=np.array([quad(wth_f_qso_n12,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_dlo_n12b=interp1d(tharr_th,tharr_th*wth_th_dlo_n12b,bounds_error=False,fill_value=0)
-wth_pr_dlo_n12b=np.array([quad(wth_f_dlo_n12b,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qso_n12b=interp1d(tharr_th,tharr_th*wth_th_qso_n12b,bounds_error=False,fill_value=0)
-wth_pr_qso_n12b=np.array([quad(wth_f_qso_n12b,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_dlo_g16=interp1d(tharr_th,tharr_th*wth_th_dlo_g16,bounds_error=False,fill_value=0)
-wth_pr_dlo_g16=np.array([quad(wth_f_dlo_g16,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qso_g16=interp1d(tharr_th,tharr_th*wth_th_qso_g16,bounds_error=False,fill_value=0)
-wth_pr_qso_g16=np.array([quad(wth_f_qso_g16,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
-wth_f_qsu=interp1d(tharr_th,tharr_th*wth_th_qsu,bounds_error=False,fill_value=0)
-wth_pr_qsu=np.array([quad(wth_f_qsu,th-dth/2,th+dth/2)[0]/(th*dth) for th in tharr])
+if not os.path.isfile(outdir+"wth_th_binned.txt") :
+    cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
+    wth_pr_dlo_n12=qxk.compute_theory(zarr_dlo_n12,nzarr_dlo_n12,bzarr_dlo_n12,cosmo,tharr,dx=dth,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_pr_qso_n12=qxk.compute_theory(zarr_qso_n12,nzarr_qso_n12,bzarr_qso_n12,cosmo,tharr,dx=dth,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_pr_dlo_n12b=qxk.compute_theory(zarr_dlo_n12b,nzarr_dlo_n12b,bzarr_dlo_n12b,cosmo,tharr,dx=dth,
+                                       return_correlation=True,filter_function=wfunc)
+    wth_pr_qso_n12b=qxk.compute_theory(zarr_qso_n12b,nzarr_qso_n12b,bzarr_qso_n12b,cosmo,tharr,dx=dth,
+                                       return_correlation=True,filter_function=wfunc)
+    wth_pr_dlo_g16=qxk.compute_theory(zarr_dlo_g16,nzarr_dlo_g16,bzarr_dlo_g16,cosmo,tharr,dx=dth,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_pr_qso_g16=qxk.compute_theory(zarr_qso_g16,nzarr_qso_g16,bzarr_qso_g16,cosmo,tharr,dx=dth,
+                                      return_correlation=True,filter_function=wfunc)
+    wth_pr_qsu=qxk.compute_theory(zarr_qsu,nzarr_qsu,bzarr_qsu,cosmo,tharr,dx=dth,
+                                  return_correlation=True,filter_function=wfunc)
+    np.savetxt(outdir+"wth_th_binned.txt",np.transpose([tharr,
+                                                        wth_pr_dlo_n12,wth_pr_qso_n12,
+                                                        wth_pr_dlo_n12b,wth_pr_qso_n12b,
+                                                        wth_pr_dlo_g16,wth_pr_qso_g16,
+                                                        wth_pr_qsu]))
+tharr_thb,wth_pr_dlo_n12,wth_pr_qso_n12,wth_pr_dlo_n12b,wth_pr_qso_n12b,wth_pr_dlo_g16,wth_pr_qso_g16,wth_pr_qsu=np.loadtxt(outdir+"wth_th_binned.txt",unpack=True)
 
 if plot_stuff :
     plt.figure()
@@ -371,15 +369,6 @@ if plot_stuff :
     ax.plot(tharr_th,b_dla_n12[1]*1E3*wth_th_qso_n12,'r-',lw=2)
     ax.errorbar(tharr,1E3*wth_dla_n12,yerr=1E3*np.sqrt(np.diag(covar_all_n12[:nth,:nth])),fmt='bo',label='$\\kappa\\times{\\rm DLA}$')
     ax.errorbar(tharr,1E3*wth_qso_n12,yerr=1E3*np.sqrt(np.diag(covar_all_n12[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
-#    ax.plot(tharr_th,b_dla_n12b[0]*1E3*wth_th_dlo_n12b+b_dla_n12b[1]*1E3*wth_th_qso_n12b,'b-',lw=2)
-#    ax.plot(tharr_th,b_dla_n12b[1]*1E3*wth_th_qso_n12b,'r-',lw=2)
-#    ax.errorbar(tharr,1E3*wth_dla_n12b,yerr=1E3*np.sqrt(np.diag(covar_all_n12b[:nth,:nth])),fmt='bo',label='$\\kappa\\times{\\rm DLA}$')
-#    ax.errorbar(tharr,1E3*wth_qso_n12b,yerr=1E3*np.sqrt(np.diag(covar_all_n12b[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
-#    ax.plot(tharr_th,b_dla_g16[0]*1E3*wth_th_dlo_g16+b_dla_g16[1]*1E3*wth_th_qso_g16,'b-',lw=2)
-#    ax.plot(tharr_th,b_dla_g16[1]*1E3*wth_th_qso_g16,'r-',lw=2)
-#    ax.errorbar(tharr,1E3*wth_dla_g16,yerr=1E3*np.sqrt(np.diag(covar_all_g16[:nth,:nth])),fmt='bo',label='$\\kappa\\times{\\rm DLA}$')
-#    ax.errorbar(tharr,1E3*wth_qso_g16,yerr=1E3*np.sqrt(np.diag(covar_all_g16[nth:,nth:])),fmt='ro',label='$\\kappa\\times{\\rm QSO}$')
-#    ax.plot([-1,-1],[-1,-1],'k-',lw=2,label='${\\rm best\\,\\,fit}$')
     ax.set_xlim([0,thmax])
     ax.set_ylim([-0.15,0.5])
     ax.set_xlabel('$\\theta\\,\\,[{\\rm deg}]$',fontsize=14)
@@ -389,7 +378,6 @@ if plot_stuff :
     for tick in ax.yaxis.get_major_ticks():
         tick.label.set_fontsize(12)
     plt.legend(loc='upper right',frameon=False,fontsize=14)
-#    plt.savefig("doc/wth_x2.pdf",bbox_inches='tight')
 
 line_out+="%.3lE %.3lE"%(1.0,1.0)
 if plot_stuff :

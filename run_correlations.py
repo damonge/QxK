@@ -1,10 +1,9 @@
-from astropy.io import fits
 import numpy as np
 import healpy as hp
-from scipy.interpolate import interp1d
 import os
 import sys
 import common as cmm
+import qxk
 
 if len(sys.argv)!=6 :
     print "Usage : run_correlations.py thmax nbins nside_cmbl use_wiener[0,1] nsims"
@@ -50,31 +49,31 @@ mask =hp.read_map(fname_mask_cmbl,verbose=False)
 #field=hp.read_map(fname_cmbl,verbose=False)
 
 print " Computing the DLA (N12) 2PCF"
-th_dla_n12,wth_dla_n12,hf_dla_n12,hm_dla_n12=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla_n12,thmax,nth,
+th_dla_n12,wth_dla_n12,hf_dla_n12,hm_dla_n12=qxk.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla_n12,thmax,nth,
                                                                  fname_out=outdir+"corr_c_dla_n12.txt")
 print " Computing the QSO (N12) 2PCF"
-th_qso_n12,wth_qso_n12,hf_qso_n12,hm_qso_n12=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,thmax,nth,
+th_qso_n12,wth_qso_n12,hf_qso_n12,hm_qso_n12=qxk.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,thmax,nth,
                                                                  fname_out=outdir+"corr_c_qso_n12.txt",weight_name='W_N12')
 wth_dlo_n12=wth_dla_n12-wth_qso_n12
 
 print " Computing the DLA (N12B) 2PCF"
-th_dla_n12b,wth_dla_n12b,hf_dla_n12b,hm_dla_n12b=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla_n12b,thmax,nth,
+th_dla_n12b,wth_dla_n12b,hf_dla_n12b,hm_dla_n12b=qxk.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla_n12b,thmax,nth,
                                                                      fname_out=outdir+"corr_c_dla_n12b.txt")
 print " Computing the QSO (N12B) 2PCF"
-th_qso_n12b,wth_qso_n12b,hf_qso_n12b,hm_qso_n12b=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,thmax,nth,
+th_qso_n12b,wth_qso_n12b,hf_qso_n12b,hm_qso_n12b=qxk.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,thmax,nth,
                                                                      fname_out=outdir+"corr_c_qso_n12b.txt",weight_name='W_N12B')
 wth_dlo_n12b=wth_dla_n12b-wth_qso_n12b
 
 print " Computing the DLA (G16) 2PCF"
-th_dla_g16,wth_dla_g16,hf_dla_g16,hm_dla_g16=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla_g16,thmax,nth,
+th_dla_g16,wth_dla_g16,hf_dla_g16,hm_dla_g16=qxk.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_dla_g16,thmax,nth,
                                                                  fname_out=outdir+"corr_c_dla_g16.txt")
 print " Computing the QSO (G16) 2PCF"
-th_qso_g16,wth_qso_g16,hf_qso_g16,hm_qso_g16=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,thmax,nth,
+th_qso_g16,wth_qso_g16,hf_qso_g16,hm_qso_g16=qxk.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,thmax,nth,
                                                                  fname_out=outdir+"corr_c_qso_g16.txt",weight_name='W_G16')
 wth_dlo_g16=wth_dla_g16-wth_qso_g16
 
 print " Computing the QSO-UNIFORM 2PCF"
-th_qsu,wth_qsu,hf_qsu,hm_qsu=cmm.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,
+th_qsu,wth_qsu,hf_qsu,hm_qsu=qxk.compute_xcorr_c(fname_cmbl,fname_mask_cmbl,cmm.fname_qso,
                                                  thmax,nth,fname_out=outdir+"corr_c_qsu.txt",
                                                  cut_name='UNIHI',weight_name='W_DUM')
 
@@ -93,25 +92,25 @@ def get_random_corr(isim) :
              (os.path.isfile(fname_dla_g16)) and (os.path.isfile(fname_qso_g16)) and (os.path.isfile(fname_qsu)))) :
         print "  %d"%isim
         cleanup=True
-        cmm.random_map(1000+isim,mask,cmm.fname_kappa_cl,fname_out=outdir+'map_random_%d.fits'%isim,
+        qxk.random_map(1000+isim,mask,cmm.fname_kappa_cl,fname_out=outdir+'map_random_%d.fits'%isim,
                        use_wiener=use_wiener)
 
-    t_dla_n12,w_dla_n12,f_dla_n12,m_dla_n12=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+    t_dla_n12,w_dla_n12,f_dla_n12,m_dla_n12=qxk.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
                                                                 cmm.fname_dla_n12,thmax,nth,fname_out=fname_dla_n12)
-    t_qso_n12,w_qso_n12,f_qso_n12,m_qso_n12=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+    t_qso_n12,w_qso_n12,f_qso_n12,m_qso_n12=qxk.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
                                                                 cmm.fname_qso,thmax,nth,fname_out=fname_qso_n12,weight_name='W_N12')
 
-    t_dla_n12b,w_dla_n12b,f_dla_n12b,m_dla_n12b=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+    t_dla_n12b,w_dla_n12b,f_dla_n12b,m_dla_n12b=qxk.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
                                                                 cmm.fname_dla_n12b,thmax,nth,fname_out=fname_dla_n12b)
-    t_qso_n12b,w_qso_n12b,f_qso_n12b,m_qso_n12b=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+    t_qso_n12b,w_qso_n12b,f_qso_n12b,m_qso_n12b=qxk.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
                                                                 cmm.fname_qso,thmax,nth,fname_out=fname_qso_n12b,weight_name='W_N12B')
 
-    t_dla_g16,w_dla_g16,f_dla_g16,m_dla_g16=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+    t_dla_g16,w_dla_g16,f_dla_g16,m_dla_g16=qxk.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
                                                                 cmm.fname_dla_g16,thmax,nth,fname_out=fname_dla_g16)
-    t_qso_g16,w_qso_g16,f_qso_g16,m_qso_g16=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+    t_qso_g16,w_qso_g16,f_qso_g16,m_qso_g16=qxk.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
                                                                 cmm.fname_qso,thmax,nth,fname_out=fname_qso_g16,weight_name='W_G16')
 
-    t_qsu,w_qsu,f_qsu,m_qsu=cmm.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
+    t_qsu,w_qsu,f_qsu,m_qsu=qxk.compute_xcorr_c(outdir+'map_random_%d.fits'%isim,fname_mask_cmbl,
                                                 cmm.fname_qso,thmax,nth,cut_name='UNIHI',weight_name='NO_WEIGHT',fname_out=fname_qsu)
         
     if cleanup :

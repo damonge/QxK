@@ -2,6 +2,9 @@ import numpy as np
 import healpy as hp
 import pymaster as nmt
 import os
+import pyccl as ccl
+from scipy.interpolate import interp1d
+from scipy.integrate import quad
 
 def compute_xcorr_c(fname_field,fname_mask,fname_catalog,thmax_deg,nbins,logbin=False,
                     thmin_deg=0,fname_out='none',weight_name='W',cut_name='NO_CUT') :
@@ -76,9 +79,7 @@ def delta_n_map(lat,lon,nside,completeness_map=None,completeness_thr=0.1,weights
     rot : rotation to apply to (lat,lon) before generating map. If None, no rotation will
           be applied.
 
-    returns :
-      - mpd : map of delta_n
-      - mask : binary mask defining the areas where mpd is not 0 by definition.
+    returns : map of delta_n
     """
     npix=hp.nside2npix(nside)
     
@@ -112,7 +113,7 @@ def delta_n_map(lat,lon,nside,completeness_map=None,completeness_thr=0.1,weights
     mpd=np.zeros(npix)
     mpd[ipix_unmasked]=mpn[ipix_unmasked]/mpm[ipix_unmasked]-1
 
-    return mpd,mask
+    return mpd
 
 def compute_cell(mp1,mp2,bpws,mask=None,are_fields=False,workspace=None) :
     """
@@ -142,7 +143,7 @@ def compute_cell(mp1,mp2,bpws,mask=None,are_fields=False,workspace=None) :
 
     return cl_decoupled[0]
 
-def compute_theory(z,nz,bz,cosmo,x_out,return_correlation=False) :
+def compute_theory(z,nz,bz,cosmo,x_out,dx=None,return_correlation=False,filter_function=None) :
     """
     Computes theoretical 2-point statistic for kappa x delta
 
@@ -151,12 +152,14 @@ def compute_theory(z,nz,bz,cosmo,x_out,return_correlation=False) :
     bz : bias as a function of redshift sampled at z
     cosmo : a ccl Cosmology object
     x_out : array of scales (either ell or theta) at which you want to sample the 2-point statistic
+    dx : width of the bins in x (should be a scalar)
     return_correlation : if True, the correlation function will be computed (with x_out giving the values of the angular separation in degrees). Otherwise, the power spectrum will be computed (with x_out giving the multipoles at which it's estimated.
+    filter_function : if not None, this should be a function that takes ell and returns a filter w(ell). The power spectra will then be applied this filter before computing correlation functions if return_correlation is True.
     """
 
     #Create tracers
     clt_d=ccl.ClTracerNumberCounts(cosmo,False,False,(z,nz),(z,bz))
-    clt_k=ccl.ClTracerCMBLensing(cosmo)
+    clt_k=ccl.ClTracerCMBLensing(cosmo,z_source=1100.)
 
     #Compute power spectrum for a large range of ells
     larr=np.concatenate((1.*np.arange(500),500+10.*np.arange(950)))
@@ -164,9 +167,24 @@ def compute_theory(z,nz,bz,cosmo,x_out,return_correlation=False) :
 
     #Either sample C_ell at the relevant scales or compute correlation function
     if return_correlation :
-        ret2p=ccl.correlation(cosmo,larr,cell,x_out,method='Bessel')
+        if filter_function is None :
+            wf=np.ones_like(cell)
+        else :
+            wf=filter_function(larr)
+            
+        if dx is None :
+            thmax=x_out[-1]
+        else :
+            thmax=x_out[-1]+0.5*dx
+        tharr=thmax*np.arange(256)/255.
+        wtharr=ccl.correlation(cosmo,larr,cell*wf,tharr,method='Bessel')
+        func2p=interp1d(tharr,wtharr,bounds_error=False,fill_value=0)
     else :
-        cellf=interp1d(larr,cell,bounds_error=False,fill_value=0)
-        ret2p=cellf(x_out)
+        func2p=interp1d(larr,cell,bounds_error=False,fill_value=0)
+        
+    if dx is None :
+        ret2p=func2p(x_out)
+    else :
+        ret2p=np.array([quad(func2p,x-0.5*dx,x+0.5*dx)[0]/dx for x in x_out])
 
     return ret2p

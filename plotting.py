@@ -335,10 +335,10 @@ if sys.argv[1]=='fig5' or sys.argv[1]=='all' :
     add_rectangle(2,data['desi']['s4'],ax,col_S4)
     add_rectangle(3,data['4most']['s4'],ax,col_S4)
     ax.plot([0.5,3.5],[bdla,bdla],'k-',lw=1)
-    ax.plot([0.5,3.5],[1.5,1.5],'k--',lw=1)
+    ax.plot([0.5,3.5],[1.2,1.2],'k--',lw=1)
     ax.set_xlim([0.5,3.5])
     ax.set_xlabel('Galaxy survey',fontsize=15)
-    ax.set_ylabel('$\\sigma\\left(b_{\\rm DLA}\\right)$',fontsize=15)
+    ax.set_ylabel('$b_{\\rm DLA}$',fontsize=15)
     plt.yticks([1.2,1.6,2.0,2.4,2.8])#,['SDSS','DESI','4MOST'])
     plt.xticks([1,2,3],['SDSS','DESI','4MOST'])
     for tick in ax.yaxis.get_major_ticks():

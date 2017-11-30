@@ -66,7 +66,7 @@ mpd_dla_g16=qxk.delta_n_map(data_dla_g16['B'],data_dla_g16['L'],nside,
 mpd_qso_g16=qxk.delta_n_map(data_qso['B'],data_qso['L'],nside,
                             completeness_map=msk_qso,weights=data_qso['W_G16'])
 mpd_qsu    =qxk.delta_n_map(data_qsu['B'],data_qsu['L'],nside,
-                            completeness_map=msk_qso,weights=data_qso_n12['W_DUM'])
+                            completeness_map=msk_qso,weights=data_qsu['W_DUM'])
 
 print " Reading kappa map and mask"
 msk_kappa=hp.read_map(fname_mask_cmbl,verbose=False)
@@ -112,19 +112,19 @@ def compute_cell(fld1,fld2) :
     return (cl_decoupled[0])[ibin_use]
 
 print " Computing data power spectra"
-cell_dla_n12 =qxk.compute_cell(fld_kappa,fld_dla_n12,are_fields=True,bpw)[ibin_use];
+cell_dla_n12 =qxk.compute_cell(fld_kappa,fld_dla_n12,bpw,are_fields=True)[ibin_use];
 np.savetxt(outdir+"cell_c_dla_n12.txt" ,np.transpose([ell_list,cell_dla_n12]))
-cell_qso_n12 =qxk.compute_cell(fld_kappa,fld_qso_n12,are_fields=True,bpw)[ibin_use];
+cell_qso_n12 =qxk.compute_cell(fld_kappa,fld_qso_n12,bpw,are_fields=True)[ibin_use];
 np.savetxt(outdir+"cell_c_qso_n12.txt" ,np.transpose([ell_list,cell_qso_n12]))
-cell_dla_n12b=qxk.compute_cell(fld_kappa,fld_dla_n12b,are_fields=True,bpw)[ibin_use];
+cell_dla_n12b=qxk.compute_cell(fld_kappa,fld_dla_n12b,bpw,are_fields=True)[ibin_use];
 np.savetxt(outdir+"cell_c_dla_n12b.txt" ,np.transpose([ell_list,cell_dla_n12b]))
-cell_qso_n12b=qxk.compute_cell(fld_kappa,fld_qso_n12b,are_fields=True,bpw)[ibin_use];
+cell_qso_n12b=qxk.compute_cell(fld_kappa,fld_qso_n12b,bpw,are_fields=True)[ibin_use];
 np.savetxt(outdir+"cell_c_qso_n12b.txt" ,np.transpose([ell_list,cell_qso_n12b]))
-cell_dla_g16 =qxk.compute_cell(fld_kappa,fld_dla_g16,are_fields=True,bpw)[ibin_use];
+cell_dla_g16 =qxk.compute_cell(fld_kappa,fld_dla_g16,bpw,are_fields=True)[ibin_use];
 np.savetxt(outdir+"cell_c_dla_g16.txt" ,np.transpose([ell_list,cell_dla_g16]))
-cell_qso_g16 =qxk.compute_cell(fld_kappa,fld_qso_g16,are_fields=True,bpw)[ibin_use];
+cell_qso_g16 =qxk.compute_cell(fld_kappa,fld_qso_g16,bpw,are_fields=True)[ibin_use];
 np.savetxt(outdir+"cell_c_qso_g16.txt" ,np.transpose([ell_list,cell_qso_g16]))
-cell_qsu     =qxk.compute_cell(fld_kappa,fld_qsu,are_fields=True,bpw);
+cell_qsu     =qxk.compute_cell(fld_kappa,fld_qsu,bpw,are_fields=True)[ibin_use];
 np.savetxt(outdir+"cell_c_qsu.txt"     ,np.transpose([ell_list,cell_qsu]))
 
 def get_random_cell(isim) :
@@ -143,19 +143,19 @@ def get_random_cell(isim) :
         cleanup=True
         mpk=qxk.random_map(1000+isim,msk_kappa,cmm.fname_kappa_cl)
         fldk=nmt.NmtField(msk_kappa_apo,[mpk])
-        cl_dla_n12=qxk.compute_cell(fldk,fld_dla_n12,are_fields=True,bpw)[ibin_use];
+        cl_dla_n12=qxk.compute_cell(fldk,fld_dla_n12,bpw,are_fields=True)[ibin_use];
         np.savetxt(fname_dla_n12,np.transpose([ell_list,cl_dla_n12]))
-        cl_qso_n12=qxk.compute_cell(fldk,fld_qso_n12,are_fields=True,bpw)[ibin_use];
+        cl_qso_n12=qxk.compute_cell(fldk,fld_qso_n12,bpw,are_fields=True)[ibin_use];
         np.savetxt(fname_qso_n12,np.transpose([ell_list,cl_qso_n12]))
-        cl_dla_n12b=qxk.compute_cell(fldk,fld_dla_n12b,are_fields=True,bpw)[ibin_use];
+        cl_dla_n12b=qxk.compute_cell(fldk,fld_dla_n12b,bpw,are_fields=True)[ibin_use];
         np.savetxt(fname_dla_n12b,np.transpose([ell_list,cl_dla_n12b]))
-        cl_qso_n12b=qxk.compute_cell(fldk,fld_qso_n12b,are_fields=True,bpw)[ibin_use];
+        cl_qso_n12b=qxk.compute_cell(fldk,fld_qso_n12b,bpw,are_fields=True)[ibin_use];
         np.savetxt(fname_qso_n12b,np.transpose([ell_list,cl_qso_n12b]))
-        cl_dla_g16=qxk.compute_cell(fldk,fld_dla_g16,are_fields=True,bpw)[ibin_use];
+        cl_dla_g16=qxk.compute_cell(fldk,fld_dla_g16,bpw,are_fields=True)[ibin_use];
         np.savetxt(fname_dla_g16,np.transpose([ell_list,cl_dla_g16]))
-        cl_qso_g16=qxk.compute_cell(fldk,fld_qso_g16,are_fields=True,bpw)[ibin_use];
+        cl_qso_g16=qxk.compute_cell(fldk,fld_qso_g16,bpw,are_fields=True)[ibin_use];
         np.savetxt(fname_qso_g16,np.transpose([ell_list,cl_qso_g16]))
-        cl_qsu=qxk.compute_cell(fldk,fld_qsu,are_fields=True,bpw)[ibin_use];
+        cl_qsu=qxk.compute_cell(fldk,fld_qsu,bpw,are_fields=True)[ibin_use];
         np.savetxt(fname_qsu,np.transpose([ell_list,cl_qsu]))
     else :
         ll,cl_dla_n12 =np.loadtxt(fname_dla_n12 ,unpack=True)

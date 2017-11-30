@@ -1,5 +1,4 @@
-1. Install the python module that computes the theoretical 2PCF (cl2wth.c).
-   To do that run 'python setup.py install'
+1. Install CCL https://github.com/LSSTDESC/CCL
 
 2. Compile the code that computes the 2PCF in the data.
    Typing 'make' should do the trick. The code requires cfitsio and HEALPix.

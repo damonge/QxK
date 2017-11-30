@@ -1,6 +1,5 @@
 from astropy.io import fits
 import numpy as np
-import healpy as hp
 import matplotlib.pyplot as plt
 import pylab
 from scipy.interpolate import interp1d
@@ -8,9 +7,8 @@ import os
 import sys
 import common as cmm
 import pyccl as ccl
-import cl2wth as c2w
-from scipy.integrate import quad
 import scipy.stats as st
+import qxk
 
 from matplotlib import rc
 rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']})
@@ -46,15 +44,20 @@ if do_plot_stuff>0 :
 outdir="outputs_ell2_2002_ns%d_nlb%d_apo%.3lf"%(nside,nlb,aposcale)
 outdir+="/"
 
+
+
+#Start of the line that will go into results.txt
 line_out="Cl_Ns%d_Nl%d_apo%.1lf "%(nside,nlb,aposcale)
 
 fname_alldata=outdir+"cl_qxk_all"
 
+#Read catalogs
 data_dla_n12=(fits.open(cmm.fname_dla_n12))[1].data
 data_dla_n12b=(fits.open(cmm.fname_dla_n12b))[1].data
 data_dla_g16=(fits.open(cmm.fname_dla_g16))[1].data
 data_qso=(fits.open(cmm.fname_qso))[1].data
 
+#Read 2-point data
 d=np.load(fname_alldata+'.npz')
 
 larr=d['ll']
@@ -64,6 +67,7 @@ cell_dla_g16=d['cell_dla_g16']; cell_qso_g16=d['cell_qso_g16']; cell_dlo_g16=cel
 cell_qsu=d['cell_qsu']
 nell=len(larr)
 
+#Compute covariance matrices
 if verbose :
     print " Computing covariance matrices"
 nsims=len(d['randoms'])
@@ -76,37 +80,6 @@ corr_all_n12b=covar_all_n12b/np.sqrt(np.diag(covar_all_n12b)[None,:]*np.diag(cov
 mean_all_g16=np.mean(d['randoms_2'][:,2,1,:],axis=0)
 covar_all_g16=np.mean(d['randoms_2'][:,2,1,:,None]*d['randoms_2'][:,2,1,None,:],axis=0)-mean_all_g16[:,None]*mean_all_g16[None,:]
 corr_all_g16=covar_all_g16/np.sqrt(np.diag(covar_all_g16)[None,:]*np.diag(covar_all_g16)[:,None])
-
-'''
-mean_n12_n12b=np.zeros(4*nell)
-mean_n12_g16 =np.zeros(4*nell)
-covar_n12_n12b=np.zeros([4*nell,4*nell])
-covar_n12_g16=np.zeros([4*nell,4*nell])
-for i in np.arange(nsims) :
-    print i
-    vec=np.zeros(4*nell)
-    vec2=np.zeros([4*nell,4*nell])
-
-    vec[0*nell:1*nell]=d['randoms'][i,0,1,:];
-    vec[1*nell:2*nell]=d['randoms'][i,3,1,:];
-    vec[2*nell:3*nell]=d['randoms'][i,1,1,:];
-    vec[3*nell:4*nell]=d['randoms'][i,4,1,:];
-    vec2=vec[:,None]*vec[None,:]
-    mean_n12_n12b+=vec
-    covar_n12_n12b+=vec2
-
-    vec[0*nell:1*nell]=d['randoms'][i,0,1,:];
-    vec[1*nell:2*nell]=d['randoms'][i,3,1,:];
-    vec[2*nell:3*nell]=d['randoms'][i,2,1,:];
-    vec[3*nell:4*nell]=d['randoms'][i,5,1,:];
-    vec2=vec[:,None]*vec[None,:]
-    mean_n12_g16+=vec
-    covar_n12_g16+=vec2
-mean_n12_n12b/=nsims
-mean_n12_g16/=nsims
-covar_n12_n12b=covar_n12_n12b/nsims-mean_n12_n12b[:,None]*mean_n12_n12b[None,:]
-covar_n12_g16=covar_n12_g16/nsims-mean_n12_g16[:,None]*mean_n12_g16[None,:]
-'''
 
 mean_dla_n12=np.mean(d['randoms'][:,0,1,:],axis=0)
 covar_dla_n12=np.mean(d['randoms'][:,0,1,:,None]*d['randoms'][:,0,1,None,:],axis=0)-mean_dla_n12[:,None]*mean_dla_n12[None,:]
@@ -172,21 +145,27 @@ def get_nz_oversample(bins,nzar,nbins) :
     zarr=bins[0]+(bins[-1]-bins[0])*np.arange(nbins)/(nbins-1.)
     pzarr=nf(zarr)
     return zarr,pzarr
-nz,bn=np.histogram(data_dla_n12['z_abs'],range=[0,7],bins=50); zarr_dlo_n12,nzarr_dlo_n12=get_nz_oversample(bn,nz,256)
-bzarr_dlo_n12=cmm.bias_dla(zarr_dlo_n12)
-nz,bins=np.histogram(data_dla_n12['zqso'],range=[0,7],bins=50); zarr_qso_n12,nzarr_qso_n12=get_nz_oversample(bn,nz,256)
-bzarr_qso_n12=cmm.bias_qso(zarr_qso_n12)
-nz,bn=np.histogram(data_dla_n12b['z_abs'],range=[0,7],bins=50); zarr_dlo_n12b,nzarr_dlo_n12b=get_nz_oversample(bn,nz,256)
-bzarr_dlo_n12b=cmm.bias_dla(zarr_dlo_n12b)
-nz,bins=np.histogram(data_dla_n12b['zqso'],range=[0,7],bins=50); zarr_qso_n12b,nzarr_qso_n12b=get_nz_oversample(bn,nz,256)
-bzarr_qso_n12b=cmm.bias_qso(zarr_qso_n12b)
-nz,bn=np.histogram(data_dla_g16['z_abs'],range=[0,7],bins=50); zarr_dlo_g16,nzarr_dlo_g16=get_nz_oversample(bn,nz,256)
-bzarr_dlo_g16=cmm.bias_dla(zarr_dlo_g16)
-nz,bins=np.histogram(data_dla_g16['zqso'],range=[0,7],bins=50); zarr_qso_g16,nzarr_qso_g16=get_nz_oversample(bn,nz,256)
-bzarr_qso_g16=cmm.bias_qso(zarr_qso_g16)
+nz,bn=np.histogram(data_dla_n12['z_abs'],range=[0,7],bins=50);
+zarr_dlo_n12,nzarr_dlo_n12=get_nz_oversample(bn,nz,256)
+bzarr_dlo_n12=np.ones_like(zarr_dlo_n12)
+nz,bins=np.histogram(data_dla_n12['zqso'],range=[0,7],bins=50);
+zarr_qso_n12,nzarr_qso_n12=get_nz_oversample(bn,nz,256)
+bzarr_qso_n12=np.ones_like(zarr_qso_n12)
+nz,bn=np.histogram(data_dla_n12b['z_abs'],range=[0,7],bins=50);
+zarr_dlo_n12b,nzarr_dlo_n12b=get_nz_oversample(bn,nz,256)
+bzarr_dlo_n12b=np.ones_like(zarr_dlo_n12b)
+nz,bins=np.histogram(data_dla_n12b['zqso'],range=[0,7],bins=50);
+zarr_qso_n12b,nzarr_qso_n12b=get_nz_oversample(bn,nz,256)
+bzarr_qso_n12b=np.ones_like(zarr_qso_n12b)
+nz,bn=np.histogram(data_dla_g16['z_abs'],range=[0,7],bins=50);
+zarr_dlo_g16,nzarr_dlo_g16=get_nz_oversample(bn,nz,256)
+bzarr_dlo_g16=np.ones_like(zarr_dlo_g16)
+nz,bins=np.histogram(data_dla_g16['zqso'],range=[0,7],bins=50);
+zarr_qso_g16,nzarr_qso_g16=get_nz_oversample(bn,nz,256)
+bzarr_qso_g16=np.ones_like(zarr_qso_g16)
 nz,bins=np.histogram(data_qso['Z_PIPE'][np.where(data_qso['UNIHI'])[0]],range=[0,7],bins=50)
 zarr_qsu,nzarr_qsu=get_nz_oversample(bn,nz,256)
-bzarr_qsu=cmm.bias_qso(zarr_qsu)
+bzarr_qsu=np.ones_like(zarr_qsu)
 
 if plot_stuff :
     plt.figure()
@@ -198,24 +177,35 @@ if plot_stuff :
     plt.plot(zarr_qso_g16 ,nzarr_qso_g16 ,'b-.')
     plt.plot(zarr_qsu,nzarr_qsu,'g-')
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if not os.path.isfile(outdir+"cls_th.txt") :
     cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
-    clt_dlo_n12 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo_n12,nzarr_dlo_n12),(zarr_dlo_n12,bzarr_dlo_n12))
-    clt_qso_n12 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso_n12,nzarr_qso_n12),(zarr_qso_n12,bzarr_qso_n12))
-    clt_dlo_n12b =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo_n12b,nzarr_dlo_n12b),(zarr_dlo_n12b,bzarr_dlo_n12b))
-    clt_qso_n12b =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso_n12b,nzarr_qso_n12b),(zarr_qso_n12b,bzarr_qso_n12b))
-    clt_dlo_g16 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_dlo_g16,nzarr_dlo_g16),(zarr_dlo_g16,bzarr_dlo_g16))
-    clt_qso_g16 =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qso_g16,nzarr_qso_g16),(zarr_qso_g16,bzarr_qso_g16))
-    clt_qsu =ccl.ClTracerNumberCounts(cosmo,False,False,(zarr_qsu,nzarr_qsu),(zarr_qsu,bzarr_qsu))
-    clt_cmbl=ccl.ClTracerCMBLensing(cosmo)
     larr_b     =np.concatenate((1.*np.arange(500),500+10*np.arange(950)))
-    cl_dc_n12=ccl.angular_cl(cosmo,clt_dlo_n12,clt_cmbl,larr_b,l_limber=-1) 
-    cl_qc_n12=ccl.angular_cl(cosmo,clt_qso_n12,clt_cmbl,larr_b,l_limber=-1)
-    cl_dc_n12b=ccl.angular_cl(cosmo,clt_dlo_n12b,clt_cmbl,larr_b,l_limber=-1)
-    cl_qc_n12b=ccl.angular_cl(cosmo,clt_qso_n12b,clt_cmbl,larr_b,l_limber=-1)
-    cl_dc_g16=ccl.angular_cl(cosmo,clt_dlo_g16,clt_cmbl,larr_b,l_limber=-1)
-    cl_qc_g16=ccl.angular_cl(cosmo,clt_qso_g16,clt_cmbl,larr_b,l_limber=-1)
-    cl_uc=ccl.angular_cl(cosmo,clt_qsu,clt_cmbl,larr_b,l_limber=-1)
+    cl_dc_n12 =qxk.compute_theory(zarr_dlo_n12 ,nzarr_dlo_n12 ,bzarr_dlo_n12 ,cosmo,larr_b)
+    cl_qc_n12 =qxk.compute_theory(zarr_qso_n12 ,nzarr_qso_n12 ,bzarr_qso_n12 ,cosmo,larr_b)
+    cl_dc_n12b=qxk.compute_theory(zarr_dlo_n12b,nzarr_dlo_n12b,bzarr_dlo_n12b,cosmo,larr_b)
+    cl_qc_n12b=qxk.compute_theory(zarr_qso_n12b,nzarr_qso_n12b,bzarr_qso_n12b,cosmo,larr_b)
+    cl_dc_g16 =qxk.compute_theory(zarr_dlo_g16 ,nzarr_dlo_g16 ,bzarr_dlo_g16 ,cosmo,larr_b)
+    cl_qc_g16 =qxk.compute_theory(zarr_qso_g16 ,nzarr_qso_g16 ,bzarr_qso_g16 ,cosmo,larr_b)
+    cl_uc     =qxk.compute_theory(zarr_qsu     ,nzarr_qsu     ,bzarr_qsu     ,cosmo,larr_b)
     np.savetxt(outdir+"cls_th.txt",np.transpose([larr_b,
                                                  cl_dc_n12,cl_qc_n12,
                                                  cl_dc_n12b,cl_qc_n12b,
@@ -223,30 +213,37 @@ if not os.path.isfile(outdir+"cls_th.txt") :
                                                  cl_uc]))
 larr_th,cl_dc_n12,cl_qc_n12,cl_dc_n12b,cl_qc_n12b,cl_dc_g16,cl_qc_g16,cl_uc=np.loadtxt(outdir+"cls_th.txt",unpack=True)
 
-#Binning theory
-cl_th_dlo_n12=cl_dc_n12
-cl_f_dlo_n12=interp1d(larr_th,cl_th_dlo_n12,bounds_error=False,fill_value=0)
-cl_pr_dlo_n12=np.array([quad(cl_f_dlo_n12,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
-cl_th_qso_n12=cl_qc_n12
-cl_f_qso_n12=interp1d(larr_th,cl_th_qso_n12,bounds_error=False,fill_value=0)
-cl_pr_qso_n12=np.array([quad(cl_f_qso_n12,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
-cl_th_dlo_n12b=cl_dc_n12b
-cl_f_dlo_n12b=interp1d(larr_th,cl_th_dlo_n12b,bounds_error=False,fill_value=0)
-cl_pr_dlo_n12b=np.array([quad(cl_f_dlo_n12b,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
-cl_th_qso_n12b=cl_qc_n12b
-cl_f_qso_n12b=interp1d(larr_th,cl_th_qso_n12b,bounds_error=False,fill_value=0)
-cl_pr_qso_n12b=np.array([quad(cl_f_qso_n12b,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
-cl_th_dlo_g16=cl_dc_g16
-cl_f_dlo_g16=interp1d(larr_th,cl_th_dlo_g16,bounds_error=False,fill_value=0)
-cl_pr_dlo_g16=np.array([quad(cl_f_dlo_g16,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
-cl_th_qso_g16=cl_qc_g16
-cl_f_qso_g16=interp1d(larr_th,cl_th_qso_g16,bounds_error=False,fill_value=0)
-cl_pr_qso_g16=np.array([quad(cl_f_qso_g16,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
-cl_th_qsu=cl_uc
-cl_f_qsu=interp1d(larr_th,cl_th_qsu,bounds_error=False,fill_value=0)
-cl_pr_qsu=np.array([quad(cl_f_qsu,l-nlb*0.5,l+nlb*0.5)[0]/nlb for l in larr])
 
-#Binning theory
+
+
+
+
+
+
+
+if not os.path.isfile(outdir+"cls_th_binned.txt") :
+    cosmo=ccl.Cosmology(Omega_c=0.27,Omega_b=0.045,h=0.69,sigma8=0.83,n_s=0.96)
+    cl_dc_n12 =qxk.compute_theory(zarr_dlo_n12 ,nzarr_dlo_n12 ,bzarr_dlo_n12 ,cosmo,larr,dx=nlb+0.)
+    cl_qc_n12 =qxk.compute_theory(zarr_qso_n12 ,nzarr_qso_n12 ,bzarr_qso_n12 ,cosmo,larr,dx=nlb+0.)
+    cl_dc_n12b=qxk.compute_theory(zarr_dlo_n12b,nzarr_dlo_n12b,bzarr_dlo_n12b,cosmo,larr,dx=nlb+0.)
+    cl_qc_n12b=qxk.compute_theory(zarr_qso_n12b,nzarr_qso_n12b,bzarr_qso_n12b,cosmo,larr,dx=nlb+0.)
+    cl_dc_g16 =qxk.compute_theory(zarr_dlo_g16 ,nzarr_dlo_g16 ,bzarr_dlo_g16 ,cosmo,larr,dx=nlb+0.)
+    cl_qc_g16 =qxk.compute_theory(zarr_qso_g16 ,nzarr_qso_g16 ,bzarr_qso_g16 ,cosmo,larr,dx=nlb+0.)
+    cl_uc     =qxk.compute_theory(zarr_qsu     ,nzarr_qsu     ,bzarr_qsu     ,cosmo,larr,dx=nlb+0.)
+    np.savetxt(outdir+"cls_th_binned.txt",np.transpose([larr,
+                                                       cl_dc_n12,cl_qc_n12,
+                                                       cl_dc_n12b,cl_qc_n12b,
+                                                       cl_dc_g16,cl_qc_g16,
+                                                       cl_uc]))
+
+larr_thb,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_n12b,cl_pr_qso_n12b,cl_pr_dlo_g16,cl_pr_qso_g16,cl_pr_qsu=np.loadtxt(outdir+"cls_th_binned.txt",unpack=True)
+
+
+
+
+
+
+
 if plot_stuff :
     plt.figure()
     plt.plot(larr_th,cl_dc_n12,'r-')
@@ -365,15 +362,6 @@ if plot_stuff :
     ax.plot(larr_th,b_dla_n12[1]*cl_th_qso_n12,'r-',lw=2)
     ax.errorbar(larr,cell_dla_n12,yerr=np.sqrt(np.diag(covar_all_n12[:nell,:nell])),fmt='bo',label='$\\kappa\\times{\\rm DLA-N12}$')
     ax.errorbar(larr,cell_qso_n12,yerr=np.sqrt(np.diag(covar_all_n12[nell:,nell:])),fmt='ro',label='$\\kappa\\times{\\rm QSO-N12}$')
-    #ax.plot(larr_th,b_dla_n12b[0]*cl_th_dlo_n12b+b_dla_n12b[1]*cl_th_qso_n12b,'g-',lw=2)
-    #ax.plot(larr_th,b_dla_n12b[1]*cl_th_qso_n12b,'y-',lw=2)
-    #ax.errorbar(larr,cell_dla_n12b,yerr=np.sqrt(np.diag(covar_all_n12b[:nell,:nell])),fmt='go',label='$\\kappa\\times{\\rm DLA-N12B}$')
-    #ax.errorbar(larr,cell_qso_n12b,yerr=np.sqrt(np.diag(covar_all_n12b[nell:,nell:])),fmt='yo',label='$\\kappa\\times{\\rm QSO-N12B}$')
-    #ax.plot(larr_th,b_dla_g16[0]*cl_th_dlo_g16+b_dla_g16[1]*cl_th_qso_g16,'m-',lw=2)
-    #ax.plot(larr_th,b_dla_g16[1]*cl_th_qso_g16,'k-',lw=2)
-    #ax.errorbar(larr,cell_dla_g16,yerr=np.sqrt(np.diag(covar_all_g16[:nell,:nell])),fmt='mo',label='$\\kappa\\times{\\rm DLA-G16}$')
-    #ax.errorbar(larr,cell_qso_g16,yerr=np.sqrt(np.diag(covar_all_g16[nell:,nell:])),fmt='ko',label='$\\kappa\\times{\\rm QSO-G16}$')
-    #ax.plot([-1,-1],[-1,-1],'k-',lw=2,label='${\\rm best\\,\\,fit}$')
     ax.set_xlim([0,600])
     ax.set_ylim([-4E-7,8E-7])
     ax.set_xlabel('$\\ell$',fontsize=14)
@@ -404,7 +392,7 @@ def fit_bias_4way(cell_dla1,cell_qso1,cell_dla2,cell_qso2,cl_pr_dlo1,cl_pr_qso1,
     icv=np.linalg.inv(cv)
     cov_b=np.linalg.inv(np.dot(tv,np.dot(icv,np.transpose(tv))))
     b_bf=np.dot(cov_b,np.dot(tv,np.dot(icv,np.transpose(dv))))
-    
+
     cb=np.array([[cov_b[0,0],cov_b[0,1]],[cov_b[1,0],cov_b[1,1]]])
     db=np.array([b_bf[0],b_bf[1]])
     u=np.ones(2); icb=np.linalg.inv(cb); 
@@ -413,6 +401,7 @@ def fit_bias_4way(cell_dla1,cell_qso1,cell_dla2,cell_qso2,cl_pr_dlo1,cl_pr_qso1,
 
     print b_bf[0],b_bf[1],np.sqrt(cov_b[0,0]),np.sqrt(cov_b[1,1]),cov_b[0,1]/np.sqrt(cov_b[0,0]*cov_b[1,1]),chi2,1-st.chi2.cdf(chi2,1)
     return 1-st.chi2.cdf(chi2,1)
+
 print "N12-N12B"
 pte_n12_n12b=fit_bias_4way(cell_dla_n12,cell_qso_n12,cell_dla_n12b,cell_qso_n12b,cl_pr_dlo_n12,cl_pr_qso_n12,cl_pr_dlo_n12b,cl_pr_qso_n12b,covar_n12_n12b)
 print "N12-G16"
